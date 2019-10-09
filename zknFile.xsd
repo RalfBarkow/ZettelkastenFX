@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="zettelkasten">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="zettel"/>
+      </xs:sequence>
+      <xs:attribute name="firstzettel" use="required" type="xs:integer"/>
+      <xs:attribute name="lastzettel" use="required" type="xs:integer"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="zettel">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="title"/>
+        <xs:element ref="content"/>
+        <xs:element ref="author"/>
+        <xs:element ref="keywords"/>
+        <xs:element ref="manlinks"/>
+        <xs:element ref="links"/>
+        <xs:element ref="misc"/>
+        <xs:element ref="luhmann"/>
+      </xs:sequence>
+      <xs:attribute name="fromBibTex" type="xs:integer"/>
+      <xs:attribute name="rating"/>
+      <xs:attribute name="ratingcount"/>
+      <xs:attribute name="ts_created" use="required" type="xs:integer"/>
+      <xs:attribute name="ts_edited" use="required"/>
+      <xs:attribute name="zknid" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="title" type="xs:string"/>
+  <xs:element name="content" type="xs:string"/>
+  <xs:element name="author" type="xs:string"/>
+  <xs:element name="keywords" type="xs:string"/>
+  <xs:element name="manlinks" type="xs:string"/>
+  <xs:element name="links">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="link"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="link" type="xs:string"/>
+  <xs:element name="misc" type="xs:string"/>
+  <xs:element name="luhmann" type="xs:string"/>
+</xs:schema>
