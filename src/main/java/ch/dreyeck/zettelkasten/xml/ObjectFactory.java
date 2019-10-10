@@ -15,18 +15,17 @@ import javax.xml.namespace.QName;
 
 
 /**
- * This object contains factory methods for each 
- * Java content interface and Java element interface 
- * generated in the ch.dreyeck.zettelkasten.entities package. 
- * <p>An ObjectFactory allows you to programatically 
- * construct new instances of the Java representation 
- * for XML content. The Java representation of XML 
- * content can consist of schema derived interfaces 
- * and classes representing the binding of schema 
- * type definitions, element declarations and model 
- * groups.  Factory methods for each of these are 
+ * This object contains factory methods for each
+ * Java content interface and Java element interface
+ * generated in the ch.dreyeck.zettelkasten.entities package.
+ * <p>An ObjectFactory allows you to programatically
+ * construct new instances of the Java representation
+ * for XML content. The Java representation of XML
+ * content can consist of schema derived interfaces
+ * and classes representing the binding of schema
+ * type definitions, element declarations and model
+ * groups.  Factory methods for each of these are
  * provided in this class.
- * 
  */
 @XmlRegistry
 public class ObjectFactory {
@@ -42,14 +41,12 @@ public class ObjectFactory {
 
     /**
      * Create a new ObjectFactory that can be used to create new instances of schema derived classes for package: ch.dreyeck.zettelkasten.entities
-     * 
      */
     public ObjectFactory() {
     }
 
     /**
      * Create an instance of {@link Zettel }
-     * 
      */
     public Zettel createZettel() {
         return new Zettel();
@@ -57,7 +54,6 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Links }
-     * 
      */
     public Links createLinks() {
         return new Links();
@@ -65,7 +61,6 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Zettelkasten }
-     * 
      */
     public Zettelkasten createZettelkasten() {
         return new Zettelkasten();
@@ -73,7 +68,6 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
      */
     @XmlElementDecl(namespace = "", name = "keywords")
     public JAXBElement<String> createKeywords(String value) {
@@ -82,7 +76,6 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
      */
     @XmlElementDecl(namespace = "", name = "author")
     public JAXBElement<String> createAuthor(String value) {
@@ -91,7 +84,6 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
      */
     @XmlElementDecl(namespace = "", name = "luhmann")
     public JAXBElement<String> createLuhmann(String value) {
@@ -100,7 +92,6 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
      */
     @XmlElementDecl(namespace = "", name = "link")
     public JAXBElement<String> createLink(String value) {
@@ -109,7 +100,6 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
      */
     @XmlElementDecl(namespace = "", name = "manlinks")
     public JAXBElement<String> createManlinks(String value) {
@@ -118,7 +108,6 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
      */
     @XmlElementDecl(namespace = "", name = "title")
     public JAXBElement<String> createTitle(String value) {
@@ -127,7 +116,6 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
      */
     @XmlElementDecl(namespace = "", name = "content")
     public JAXBElement<String> createContent(String value) {
@@ -136,7 +124,6 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
      */
     @XmlElementDecl(namespace = "", name = "misc")
     public JAXBElement<String> createMisc(String value) {
