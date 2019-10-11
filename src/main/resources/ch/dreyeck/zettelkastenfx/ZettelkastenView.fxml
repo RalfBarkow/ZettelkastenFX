@@ -1,23 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 
-<?import java.lang.*?>
-<?import javafx.collections.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.control.*?>
-
-<VBox xmlns:fx="http://javafx.com/fxml">
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.VBox?>
+<VBox fx:controller="ch.dreyeck.zettelkastenfx.ZettelkastenViewController" xmlns:fx="http://javafx.com/fxml">
     <children>
-        <ListView>
-            <items>
-                <FXCollections fx:factory="observableArrayList">
-                    <String fx:value="One"/>
-                    <String fx:value="Two"/>
-                    <String fx:value="Three"/>
-                    <String fx:value="Four"/>
-                    <String fx:value="Five"/>
-                </FXCollections>
-            </items>
-        </ListView>
+        <ListView fx:id="listView"/>
     </children>
 </VBox>
