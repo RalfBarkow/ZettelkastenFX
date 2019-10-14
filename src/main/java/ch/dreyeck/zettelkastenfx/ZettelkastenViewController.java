@@ -26,9 +26,7 @@ public class ZettelkastenViewController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-
-        // TODO: Binding
-
+        listView.setCellFactory(listView -> new ZettelListViewCell());
     }
 
     @FXML
@@ -37,10 +35,7 @@ public class ZettelkastenViewController implements Initializable {
             final Unmarshaller unmarshaller =
                     JAXBContext.newInstance(Zettelkasten.class).createUnmarshaller();
             zettelkasten.set((Zettelkasten) unmarshaller.unmarshal(new File("zknFile.xml")));
-
-            // TODO: (values)
-            listView.setItems(FXCollections.observableList(zettelkasten.getValue().getZettel()));
-
+            listView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
         } catch (final JAXBException e) {
             e.printStackTrace();
         }
