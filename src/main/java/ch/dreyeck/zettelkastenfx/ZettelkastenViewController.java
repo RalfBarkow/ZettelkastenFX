@@ -7,25 +7,22 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import java.io.File;
-import java.net.URL;
-import java.util.ResourceBundle;
 
-public class ZettelkastenViewController implements Initializable {
+public class ZettelkastenViewController {
 
     private final ObjectProperty<Zettelkasten> zettelkasten = new SimpleObjectProperty<>(new Zettelkasten());
 
     @FXML
     private ListView<Zettel> listView;
 
-    @Override
-    public void initialize(URL url, ResourceBundle resourceBundle) {
+    @FXML
+    public void initialize() {
         listView.setCellFactory(listView -> new ZettelListViewCell());
     }
 
