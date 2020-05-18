@@ -1,6 +1,7 @@
 module ch.dreyeck.zettelkastenfx {
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.web;
     requires java.xml.bind;
 
     opens ch.dreyeck.zettelkastenfx to javafx.fxml;
