@@ -3,6 +3,7 @@ module ch.dreyeck.zettelkastenfx {
     requires javafx.fxml;
     requires javafx.web;
     requires java.xml.bind;
+    requires jdk.jsobject;
 
     opens ch.dreyeck.zettelkastenfx to javafx.fxml;
     exports ch.dreyeck.zettelkastenfx;
