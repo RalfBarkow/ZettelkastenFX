@@ -23,7 +23,7 @@ public class ZettelkastenViewController {
 
     @FXML
     public void initialize() {
-        zettelListView.setCellFactory(listView -> {
+        zettelListView.setCellFactory((ListView<Zettel> listView) -> {
             return new ZettelListViewCell();
         });
     }
