@@ -3,7 +3,7 @@ package ch.dreyeck.zettelkasten;
 import ch.dreyeck.zettelkasten.xml.Zettelkasten;
 import org.xml.sax.SAXException;
 
-import javax.xml.bind.JAXBException;
+import jakarta.xml.bind.JAXBException;
 
 public class ZettelkastenUnmarshaller {
 
