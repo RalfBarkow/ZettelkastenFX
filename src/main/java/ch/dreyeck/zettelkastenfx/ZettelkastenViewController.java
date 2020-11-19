@@ -19,11 +19,11 @@ public class ZettelkastenViewController {
     private final ObjectProperty<Zettelkasten> zettelkasten = new SimpleObjectProperty<>(new Zettelkasten());
 
     @FXML
-    private ListView<Zettel> listView;
+    private ListView<Zettel> zettelListView;
 
     @FXML
     public void initialize() {
-        listView.setCellFactory(listView -> new ZettelListViewCell());
+        zettelListView.setCellFactory(listView -> new ZettelListViewCell());
     }
 
     @FXML
@@ -32,7 +32,7 @@ public class ZettelkastenViewController {
             final Unmarshaller unmarshaller =
                     JAXBContext.newInstance(Zettelkasten.class).createUnmarshaller();
             zettelkasten.set((Zettelkasten) unmarshaller.unmarshal(new File("zknFile.xml")));
-            listView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
+            zettelListView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
         } catch (final JAXBException e) {
             e.printStackTrace();
         }
