@@ -7,6 +7,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 
 import jakarta.xml.bind.JAXBContext;
@@ -21,11 +22,13 @@ public class ZettelkastenViewController {
     @FXML
     private ListView<Zettel> zettelListView;
 
+    private static ListCell<Zettel> call(ListView<Zettel> listView) {
+        return new ZettelListViewCell();
+    }
+
     @FXML
     public void initialize() {
-        zettelListView.setCellFactory((ListView<Zettel> listView) -> {
-            return new ZettelListViewCell();
-        });
+        zettelListView.setCellFactory(ZettelkastenViewController::call);
     }
 
     @FXML
