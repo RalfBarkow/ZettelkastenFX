@@ -84,6 +84,12 @@
             <version>5.7.0</version>
             <scope>test</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/nz.sodium/sodium -->
+        <dependency>
+            <groupId>nz.sodium</groupId>
+            <artifactId>sodium</artifactId>
+            <version>1.2.0</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
