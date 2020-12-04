@@ -32,6 +32,7 @@ public class SButton extends JButton {
     private final Listener l;
     public final Stream<Unit> sClicked;
 
+    @Override
     public void removeNotify() {
         l.unlisten();
         super.removeNotify();
