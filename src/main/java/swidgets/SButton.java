@@ -21,9 +21,7 @@ public class SButton extends JButton {
                 if (SwingUtilities.isEventDispatchThread())
                     this.setEnabled(ena);
                 else {
-                    SwingUtilities.invokeLater(() -> {
-                        this.setEnabled(ena);
-                    });
+                    SwingUtilities.invokeLater(() -> this.setEnabled(ena));
                 }
             }
         );
