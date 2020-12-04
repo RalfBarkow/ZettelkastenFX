@@ -34,7 +34,7 @@ public class Display extends Frame implements ActionListener {
     private Hashtable table = new Hashtable(10);
     private int xwidth, yheight;
     private SButton okButton;
-    private Button closeButton;
+    private SButton closeButton;
     private TextArea outDisplay;
     private Panel inDisplay;
     private ScrollPane inPane, outPane;
@@ -74,7 +74,7 @@ public class Display extends Frame implements ActionListener {
         okButton.addActionListener(this);
         okButton.setEnabled(false);
         p.add("Center", okButton);
-        closeButton = new Button("Close");
+        closeButton = new SButton("Close");
         closeButton.addActionListener(this);
         closeButton.setEnabled(true);
         p.add("East", closeButton);
