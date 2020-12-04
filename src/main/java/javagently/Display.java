@@ -70,7 +70,6 @@ public class Display extends Frame implements ActionListener {
         p.add(outDisplay);
         add(p, "Center");
         p = new Panel(new BorderLayout());
-        // TODO swidgets.SButton
         okButton = new SButton("Ready");
         okButton.addActionListener(this);
         okButton.setEnabled(false);
