@@ -6,6 +6,7 @@ module ch.dreyeck.zettelkastenfx {
     requires jdk.jsobject;
     requires java.desktop;
     requires sodium;
+    requires javafx.swing;
 
     opens ch.dreyeck.zettelkastenfx to javafx.fxml;
     exports ch.dreyeck.zettelkastenfx;
