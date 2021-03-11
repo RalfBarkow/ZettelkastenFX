@@ -1,3 +1,7 @@
+//DEPS org.openjfx:javafx-controls:11.0.2:${os.detected.jfxname}
+//DEPS org.openjfx:javafx-graphics:11.0.2:${os.detected.jfxname}
+//DEPS org.openjfx:javafx-web:11.0.2:${os.detected.jfxname}
+
 package ch.dreyeck.zettelkastenfx;
 
 import javafx.application.Application;
@@ -17,7 +21,7 @@ public class WebViewExample extends Application {
 
         WebView webView = new WebView();
 
-        webView.getEngine().load("https://dmx.berlin/");
+        webView.getEngine().load("http://192.168.178.36:8443/systems.dmx.webclient/");
 
         VBox vBox = new VBox(webView);
         Scene scene = new Scene(vBox, 960, 600);

@@ -1,3 +1,7 @@
+//DEPS org.openjfx:javafx-controls:11.0.2:${os.detected.jfxname}
+//DEPS org.openjfx:javafx-graphics:11.0.2:${os.detected.jfxname}
+//DEPS org.openjfx:javafx-fxml:11.0.2:${os.detected.jfxname}
+
 package ch.dreyeck.zettelkastenfx;
 
 import javafx.application.Application;
@@ -7,6 +11,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+
 
 /**
  * JavaFX App
