@@ -7,36 +7,36 @@ import java.text.*;
 
 public class Stream {
 
-  /* The Stream class     by J M Bishop and B Worrall May 2000
-   *                      based on the Text class Aug 1996
-   *                      on suggestion from Jens Kaasbøll
-   *
-   * Provides simple input from the keyboard and files.
-   * And formatted output to the screen and files.
-   *
-   * Constructors
-   * ------------
-   * public Stream (InputStream in)
-   * public Stream (String filename, int why)
-   *
-   * Input
-   * -----
-   * public int    readInt ()
-   * public double readDouble ()
-   * public String readString ()
-   * public char   readChar ()
-   *
-   * Output
-   * ------
-   * public void println  - for Objects, String, int, double, char
-   * public void print    - for Objects, String, int, double, char
-   * public void close()
-   *
-   * Output - class methods
-   * ----------------------
-   * public String format (int number, int align)
-   * public String format (double number, int align, int frac)
-   */
+    /* The Stream class     by J M Bishop and B Worrall May 2000
+     *                      based on the Text class Aug 1996
+     *                      on suggestion from Jens Kaasb&oslash;ll
+     *
+     * Provides simple input from the keyboard and files.
+     * And formatted output to the screen and files.
+     *
+     * Constructors
+     * ------------
+     * public Stream (InputStream in)
+     * public Stream (String filename, int why)
+     *
+     * Input
+     * -----
+     * public int    readInt ()
+     * public double readDouble ()
+     * public String readString ()
+     * public char   readChar ()
+     *
+     * Output
+     * ------
+     * public void println  - for Objects, String, int, double, char
+     * public void print    - for Objects, String, int, double, char
+     * public void close()
+     *
+     * Output - class methods
+     * ----------------------
+     * public String format (int number, int align)
+     * public String format (double number, int align, int frac)
+     */
 
 
   private BufferedReader in;
