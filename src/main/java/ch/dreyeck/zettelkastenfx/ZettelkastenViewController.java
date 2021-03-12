@@ -7,6 +7,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 
@@ -18,6 +19,7 @@ import java.io.File;
 public class ZettelkastenViewController {
 
     private final ObjectProperty<Zettelkasten> zettelkasten = new SimpleObjectProperty<>(new Zettelkasten());
+    public Button btnLoad;
 
     @FXML
     private ListView<Zettel> zettelListView;
