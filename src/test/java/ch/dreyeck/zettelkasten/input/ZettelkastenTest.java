@@ -15,7 +15,7 @@ class ZettelkastenTest {
          * out of the zip file.
          */
         ZipFilteredReader reader = new ZipFilteredReader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/#303-DesktopFrame/rgb.zkn3", "/Users/rgb/tmp/ziptest");
-        reader.filteredExpandZipFile(zipEntry -> zipEntry.getName().equals("metaInformation.xml"));
+        reader.filteredExpandZipFile(zipEntry -> zipEntry.getName().equals("zknFile.xml"));
 
     }
 }

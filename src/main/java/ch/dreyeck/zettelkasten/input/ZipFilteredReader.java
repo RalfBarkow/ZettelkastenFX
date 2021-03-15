@@ -1,5 +1,6 @@
 package ch.dreyeck.zettelkasten.input;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -41,7 +42,7 @@ public class ZipFilteredReader {
      * @param filter the predicate used to compare each entry against
      * @return
      */
-    void filteredExpandZipFile(Predicate<ZipEntry> filter) {
+    public File filteredExpandZipFile(Predicate<ZipEntry> filter) {
         // we open the zip file using a java 7 try with resources block
         try (ZipInputStream stream = new ZipInputStream(new FileInputStream(zipLocation.toFile()))) {
 
@@ -59,7 +60,7 @@ public class ZipFilteredReader {
         } catch (IOException ex) {
 
         }
-         return;
+        return null;
      }
 
     /**
