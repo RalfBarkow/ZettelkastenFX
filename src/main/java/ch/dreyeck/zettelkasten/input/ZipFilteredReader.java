@@ -1,6 +1,5 @@
 package ch.dreyeck.zettelkasten.input;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -40,9 +39,8 @@ public class ZipFilteredReader {
      * otherwise it is ignored.
      *
      * @param filter the predicate used to compare each entry against
-     * @return
      */
-    public File filteredExpandZipFile(Predicate<ZipEntry> filter) {
+    public void filteredExpandZipFile(Predicate<ZipEntry> filter) {
         // we open the zip file using a java 7 try with resources block
         try (ZipInputStream stream = new ZipInputStream(new FileInputStream(zipLocation.toFile()))) {
 
@@ -53,15 +51,12 @@ public class ZipFilteredReader {
             while ((entry = stream.getNextEntry()) != null) {
                 if (filter.test(entry)) {
                     extractFileFromArchive(stream, entry.getName());
-                } else {
-
                 }
             }
-        } catch (IOException ex) {
-
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        return null;
-     }
+    }
 
     /**
      * We only get here when we the stream is located on a zip entry.
@@ -71,7 +66,7 @@ public class ZipFilteredReader {
      */
     private void extractFileFromArchive(ZipInputStream stream, String outputName) {
         // build the path to the output file and then create the file
-        String outpath = outputDirectory + "/" + outputName;
+        String outpath = outputDirectory + "/" + outputName; //FIXME Remove this hard-coded path-delimiter.
         try (FileOutputStream output = new FileOutputStream(outpath)) {
 
             // create a buffer to copy through
@@ -83,7 +78,7 @@ public class ZipFilteredReader {
                 output.write(buffer, 0, len);
             }
         } catch (IOException e) {
-
+            e.printStackTrace();
         }
     }
 }
