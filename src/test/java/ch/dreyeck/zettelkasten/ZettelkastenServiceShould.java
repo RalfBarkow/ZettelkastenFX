@@ -6,7 +6,7 @@ public class ZettelkastenServiceShould {
     @Test
     void return_ZIP_file_entries() {
 
-        ZettelkastenService zettelkastenService = new ZettelkastenService(zipfile);
+        ZettelkastenService zettelkastenService = new ZettelkastenService();
 
         /*
          https://stackoverflow.com/questions/23260378/tdd-steps-to-write-junit-tests-for-decorator-pattern#23270462
