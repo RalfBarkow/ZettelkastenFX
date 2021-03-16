@@ -23,6 +23,11 @@ public class Zettelkasten {
     ObjectProperty<ch.dreyeck.zettelkasten.xml.Zettelkasten> zettelkasten =
             new SimpleObjectProperty<>(new ch.dreyeck.zettelkasten.xml.Zettelkasten());
 
+    // TODO
+    // Input should be a Zettelkasten zknFile.xml containing the <zettelkasten> with <zettel>s,
+    // and the output value should be Optional<Zettelkasten> indicating
+    //   either the <zettelkasten> retrieved from the ZettelkastenService (server)
+    //   or an error if the value isn't present in the Optional.
     public static final
     Lambda1<Stream<String>, Stream<Optional<String>>> load =
             sPathname -> {
@@ -35,6 +40,7 @@ public class Zettelkasten {
                         final Unmarshaller unmarshaller =
                                 JAXBContext.newInstance(ch.dreyeck.zettelkasten.xml.Zettelkasten.class).createUnmarshaller();
                         zettelkasten.set((ch.dreyeck.zettelkasten.xml.Zettelkasten) unmarshaller.unmarshal(new File(pn)));
+                        zknFileXML = Optional.ofNullable(zettelkasten.getValue().getZettel().toString());
                         // FIXME zettelListView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
                     } catch (JAXBException | NullPointerException e) {
                         e.printStackTrace();
