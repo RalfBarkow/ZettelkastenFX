@@ -1,5 +1,6 @@
 package ch.dreyeck.zettelkasten;
 
+import ch.dreyeck.zettelkasten.input.IsBusy;
 import nz.sodium.*;
 import swidgets.SButton;
 import swidgets.STextArea;
@@ -15,16 +16,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Optional;
 
-class IsBusy<A,B> {
-    public IsBusy(Lambda1<Stream<A>, Stream<B>> action, Stream<A> sIn) {
-        sOut = action.apply(sIn);
-        busy = sOut.map(i -> false)
-                   .orElse(sIn.map(i -> true))
-                   .hold(false);
-    }
-    public final Stream<B> sOut;
-    public final Cell<Boolean> busy;
-}
+
 
 public class Lookup {
 
