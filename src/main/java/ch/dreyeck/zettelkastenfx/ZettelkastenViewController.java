@@ -17,7 +17,7 @@ import java.io.File;
 
 public class ZettelkastenViewController {
 
-    private final ObjectProperty<Zettelkasten> zettelkasten = new SimpleObjectProperty<>(new Zettelkasten());
+    private final ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY = new SimpleObjectProperty<>(new Zettelkasten());
 
     @FXML
     public Button btnLoad;
@@ -39,8 +39,8 @@ public class ZettelkastenViewController {
         try {
             final Unmarshaller unmarshaller =
                     JAXBContext.newInstance(Zettelkasten.class).createUnmarshaller();
-            zettelkasten.set((Zettelkasten) unmarshaller.unmarshal(new File("zknFile.xml")));
-            zettelListView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
+            ZETTELKASTEN_OBJECT_PROPERTY.set((Zettelkasten) unmarshaller.unmarshal(new File("zknFile.xml")));
+            zettelListView.setItems(FXCollections.<Zettel>observableList(ZETTELKASTEN_OBJECT_PROPERTY.getValue().getZettel()));
         } catch (final JAXBException e) {
             e.printStackTrace();
         }
