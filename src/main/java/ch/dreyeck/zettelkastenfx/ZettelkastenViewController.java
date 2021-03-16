@@ -25,7 +25,7 @@ public class ZettelkastenViewController {
     @FXML
     private ListView<Zettel> zettelListView;
 
-    private static ListCell<Zettel> call(ListView<Zettel> listView) {
+    public static ListCell<Zettel> call(ListView<Zettel> listView) {
         return new ZettelListViewCell();
     }
 

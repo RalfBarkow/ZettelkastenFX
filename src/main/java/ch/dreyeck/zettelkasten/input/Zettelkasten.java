@@ -1,5 +1,17 @@
 package ch.dreyeck.zettelkasten.input;
 
+import ch.dreyeck.zettelkasten.xml.Zettel;
+import ch.dreyeck.zettelkastenfx.ZettelListViewCell;
+import ch.dreyeck.zettelkastenfx.ZettelkastenViewController;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Unmarshaller;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.FXCollections;
+import javafx.fxml.FXML;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
 import nz.sodium.*;
 import swidgets.SButton;
 import swidgets.STextArea;
@@ -9,9 +21,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.util.Optional;
 
 public class Zettelkasten {
+
+    private static final ObjectProperty<ch.dreyeck.zettelkasten.xml.Zettelkasten> zettelkasten = new SimpleObjectProperty<>(new ch.dreyeck.zettelkasten.xml.Zettelkasten());
+    @FXML
+    private static ListView<Zettel> zettelListView;
     public static final
     Lambda1<Stream<String>, Stream<Optional<String>>> load =
             sPathname -> {
@@ -19,18 +36,30 @@ public class Zettelkasten {
                 Listener l = sPathname.listenWeak(pn -> {
                     new Thread() {
                         public void run() {
-                            System.out.println("load "+pn);
-
-                            // TODO Unmarshalling from an InputStream:
-                            // InputStream inputStream = new FileInputStream("zknFile.xml");
-                            // JAXBContext jaxbContext = JAXBContext.newInstance(ch.dreyeck.zettelkasten.xml.Zettelkasten.class);
-                            // Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-                            // Object object = unmarshaller.unmarshal(inputStream);
+                            System.out.println("load " + pn);
+                            Optional<String> zknFileXML = Optional.empty();
+                            try {
+                                // loadZknFileXML() ; see ZettelkastenViewController.java
+                                final Unmarshaller unmarshaller =
+                                        JAXBContext.newInstance(ch.dreyeck.zettelkasten.xml.Zettelkasten.class).createUnmarshaller();
+                                zettelkasten.set((ch.dreyeck.zettelkasten.xml.Zettelkasten) unmarshaller.unmarshal(new File(pn)));
+                                zettelListView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
+                            } catch (JAXBException | NullPointerException e) {
+                                e.printStackTrace();
+                            } finally {
+                                sZettel.send(zknFileXML);
+                            }
                         }
                     }.start();
                 });
                 return sZettel.addCleanup(l);
             };
+    @FXML
+    public javafx.scene.control.Button btnLoad;
+
+    private static ListCell<Zettel> call(ListView<Zettel> listView) {
+        return new ZettelListViewCell();
+    }
 
     public static void main(String[] args) {
         JFrame view = new JFrame("Zettelkasten load");
@@ -77,5 +106,10 @@ public class Zettelkasten {
         });
         view.setSize(500, 250);
         view.setVisible(true);
+    }
+
+    @FXML
+    public void initialize() {
+        zettelListView.setCellFactory(ZettelkastenViewController::call);
     }
 }

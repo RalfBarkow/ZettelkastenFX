@@ -3,7 +3,7 @@ package ch.dreyeck.zettelkastenfx;
 import ch.dreyeck.zettelkasten.xml.Zettel;
 import javafx.scene.control.ListCell;
 
-class ZettelListViewCell extends ListCell<Zettel> {
+public class ZettelListViewCell extends ListCell<Zettel> {
 
     @Override
     protected void updateItem(Zettel zettel, boolean empty) {
