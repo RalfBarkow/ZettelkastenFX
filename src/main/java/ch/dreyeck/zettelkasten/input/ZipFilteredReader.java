@@ -59,7 +59,7 @@ public class ZipFilteredReader {
     }
 
     /**
-     * We only get here when we the stream is located on a zip entry.
+     * We only get here when the stream is located on a zip entry.
      * Now we can read the file data from the stream for this current
      * ZipEntry. Just like a normal input stream we continue reading
      * until read() returns 0 or less.
