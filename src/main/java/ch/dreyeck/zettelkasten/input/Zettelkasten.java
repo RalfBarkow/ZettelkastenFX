@@ -20,7 +20,7 @@ import java.util.Optional;
 public class Zettelkasten {
 
     private static final
-    ObjectProperty<ch.dreyeck.zettelkasten.xml.Zettelkasten> zettelkasten =
+    ObjectProperty<ch.dreyeck.zettelkasten.xml.Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY =
             new SimpleObjectProperty<>(new ch.dreyeck.zettelkasten.xml.Zettelkasten());
 
     // TODO
@@ -32,16 +32,11 @@ public class Zettelkasten {
     Lambda1<Stream<String>, Stream<Optional<String>>> load =
             sPathname -> {
                 StreamSink<Optional<String>> sZettel = new StreamSink<>();
-                Listener l = sPathname.listenWeak(pn -> new Thread(() -> {
-                    System.out.println("load " + pn);
+                Listener l = sPathname.listenWeak(pathname -> new Thread(() -> {
+                    System.out.println("load " + pathname);
                     Optional<String> zknFileXML = Optional.empty();
                     try {
-                        // loadZknFileXML() ; see ZettelkastenViewController.java
-                        final Unmarshaller unmarshaller =
-                                JAXBContext.newInstance(ch.dreyeck.zettelkasten.xml.Zettelkasten.class).createUnmarshaller();
-                        zettelkasten.set((ch.dreyeck.zettelkasten.xml.Zettelkasten) unmarshaller.unmarshal(new File(pn)));
-                        zknFileXML = Optional.ofNullable(zettelkasten.getValue().getZettel().toString());
-                        // FIXME zettelListView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
+                        zknFileXML = loadZknFileXML(pathname, zknFileXML);
                     } catch (JAXBException | NullPointerException e) {
                         e.printStackTrace();
                     } finally {
@@ -50,6 +45,16 @@ public class Zettelkasten {
                 }).start());
                 return sZettel.addCleanup(l);
             };
+
+    private static Optional<String> loadZknFileXML(String pathname, Optional<String> zknFileXML) throws JAXBException {
+        // loadZknFileXML() ; see ZettelkastenViewController.java
+        final Unmarshaller unmarshaller =
+                JAXBContext.newInstance(ch.dreyeck.zettelkasten.xml.Zettelkasten.class).createUnmarshaller();
+        ZETTELKASTEN_OBJECT_PROPERTY.set((ch.dreyeck.zettelkasten.xml.Zettelkasten) unmarshaller.unmarshal(new File(pathname)));
+        zknFileXML = Optional.ofNullable(ZETTELKASTEN_OBJECT_PROPERTY.getValue().getZettel().toString());
+        // FIXME zettelListView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
+        return zknFileXML;
+    }
 
     public static void main(String[] args) {
         JFrame view = new JFrame("Zettelkasten load");
