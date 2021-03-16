@@ -1,5 +1,6 @@
 package ch.dreyeck.zettelkasten.input;
 
+import ch.dreyeck.zettelkasten.xml.Zettelkasten;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
@@ -17,11 +18,11 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.Optional;
 
-public class Zettelkasten {
+public class ZettelkastenFile {
 
     private static final
-    ObjectProperty<ch.dreyeck.zettelkasten.xml.Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY =
-            new SimpleObjectProperty<>(new ch.dreyeck.zettelkasten.xml.Zettelkasten());
+    ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY =
+            new SimpleObjectProperty<>(new Zettelkasten());
 
     // TODO
     // Input should be a Zettelkasten zknFile.xml containing the <zettelkasten> with <zettel>s,
@@ -33,7 +34,6 @@ public class Zettelkasten {
             sPathname -> {
                 StreamSink<Optional<String>> sZettel = new StreamSink<>();
                 Listener l = sPathname.listenWeak(pathname -> new Thread(() -> {
-                    System.out.println("load " + pathname);
                     Optional<String> zknFileXML = Optional.empty();
                     try {
                         zknFileXML = loadZknFileXML(pathname, zknFileXML);
@@ -49,15 +49,15 @@ public class Zettelkasten {
     private static Optional<String> loadZknFileXML(String pathname, Optional<String> zknFileXML) throws JAXBException {
         // loadZknFileXML() ; see ZettelkastenViewController.java
         final Unmarshaller unmarshaller =
-                JAXBContext.newInstance(ch.dreyeck.zettelkasten.xml.Zettelkasten.class).createUnmarshaller();
-        ZETTELKASTEN_OBJECT_PROPERTY.set((ch.dreyeck.zettelkasten.xml.Zettelkasten) unmarshaller.unmarshal(new File(pathname)));
+                JAXBContext.newInstance(Zettelkasten.class).createUnmarshaller();
+        ZETTELKASTEN_OBJECT_PROPERTY.set((Zettelkasten) unmarshaller.unmarshal(new File(pathname)));
         zknFileXML = Optional.ofNullable(ZETTELKASTEN_OBJECT_PROPERTY.getValue().getZettel().toString());
         // FIXME zettelListView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
         return zknFileXML;
     }
 
     public static void main(String[] args) {
-        JFrame view = new JFrame("Zettelkasten load");
+        JFrame view = new JFrame("ZettelkastenFile load");
         GridBagLayout gridbag = new GridBagLayout();
         view.setLayout(gridbag);
         GridBagConstraints c = new GridBagConstraints();
