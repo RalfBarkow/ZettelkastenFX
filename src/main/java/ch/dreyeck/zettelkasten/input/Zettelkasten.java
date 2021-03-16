@@ -1,17 +1,10 @@
 package ch.dreyeck.zettelkasten.input;
 
-import ch.dreyeck.zettelkasten.xml.Zettel;
-import ch.dreyeck.zettelkastenfx.ZettelListViewCell;
-import ch.dreyeck.zettelkastenfx.ZettelkastenViewController;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.collections.FXCollections;
-import javafx.fxml.FXML;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
 import nz.sodium.*;
 import swidgets.SButton;
 import swidgets.STextArea;
@@ -26,40 +19,31 @@ import java.util.Optional;
 
 public class Zettelkasten {
 
-    private static final ObjectProperty<ch.dreyeck.zettelkasten.xml.Zettelkasten> zettelkasten = new SimpleObjectProperty<>(new ch.dreyeck.zettelkasten.xml.Zettelkasten());
-    @FXML
-    private static ListView<Zettel> zettelListView;
+    private static final
+    ObjectProperty<ch.dreyeck.zettelkasten.xml.Zettelkasten> zettelkasten =
+            new SimpleObjectProperty<>(new ch.dreyeck.zettelkasten.xml.Zettelkasten());
+
     public static final
     Lambda1<Stream<String>, Stream<Optional<String>>> load =
             sPathname -> {
                 StreamSink<Optional<String>> sZettel = new StreamSink<>();
-                Listener l = sPathname.listenWeak(pn -> {
-                    new Thread() {
-                        public void run() {
-                            System.out.println("load " + pn);
-                            Optional<String> zknFileXML = Optional.empty();
-                            try {
-                                // loadZknFileXML() ; see ZettelkastenViewController.java
-                                final Unmarshaller unmarshaller =
-                                        JAXBContext.newInstance(ch.dreyeck.zettelkasten.xml.Zettelkasten.class).createUnmarshaller();
-                                zettelkasten.set((ch.dreyeck.zettelkasten.xml.Zettelkasten) unmarshaller.unmarshal(new File(pn)));
-                                zettelListView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
-                            } catch (JAXBException | NullPointerException e) {
-                                e.printStackTrace();
-                            } finally {
-                                sZettel.send(zknFileXML);
-                            }
-                        }
-                    }.start();
-                });
+                Listener l = sPathname.listenWeak(pn -> new Thread(() -> {
+                    System.out.println("load " + pn);
+                    Optional<String> zknFileXML = Optional.empty();
+                    try {
+                        // loadZknFileXML() ; see ZettelkastenViewController.java
+                        final Unmarshaller unmarshaller =
+                                JAXBContext.newInstance(ch.dreyeck.zettelkasten.xml.Zettelkasten.class).createUnmarshaller();
+                        zettelkasten.set((ch.dreyeck.zettelkasten.xml.Zettelkasten) unmarshaller.unmarshal(new File(pn)));
+                        // FIXME zettelListView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
+                    } catch (JAXBException | NullPointerException e) {
+                        e.printStackTrace();
+                    } finally {
+                        sZettel.send(zknFileXML);
+                    }
+                }).start());
                 return sZettel.addCleanup(l);
             };
-    @FXML
-    public javafx.scene.control.Button btnLoad;
-
-    private static ListCell<Zettel> call(ListView<Zettel> listView) {
-        return new ZettelListViewCell();
-    }
 
     public static void main(String[] args) {
         JFrame view = new JFrame("Zettelkasten load");
@@ -100,16 +84,12 @@ public class Zettelkasten {
         });
 
         view.addWindowListener(new WindowAdapter() {
+            @Override
             public void windowClosing(WindowEvent e) {
                 System.exit(0);
             }
         });
         view.setSize(500, 250);
         view.setVisible(true);
-    }
-
-    @FXML
-    public void initialize() {
-        zettelListView.setCellFactory(ZettelkastenViewController::call);
     }
 }
