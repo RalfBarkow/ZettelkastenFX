@@ -23,7 +23,7 @@ public class Demo07HoldSnapshot {
 
             Stream<Integer> snapshot_of_counter = input.filter(x -> x.contains("take snapshot")).snapshot(counter);
             counter.listen(x -> System.out.println("counter = " + x));
-        
+            snapshot_of_counter.listen(x -> System.out.println("snapshot of counter = " + x));
         });
 
         outputCell.listen(x -> System.out.println("outputCell: " + x));
