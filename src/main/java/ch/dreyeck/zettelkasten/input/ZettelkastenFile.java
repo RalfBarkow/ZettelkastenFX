@@ -52,7 +52,7 @@ public class ZettelkastenFile {
                 JAXBContext.newInstance(Zettelkasten.class).createUnmarshaller();
         ZETTELKASTEN_OBJECT_PROPERTY.set((Zettelkasten) unmarshaller.unmarshal(new File(pathname)));
         zknFileXML = Optional.ofNullable(ZETTELKASTEN_OBJECT_PROPERTY.getValue().getZettel().toString());
-        // FIXME zettelListView.setItems(FXCollections.<Zettel>observableList(zettelkasten.getValue().getZettel()));
+        // FIXME zettelListView.setItems(FXCollections.<Zettel>observableList(ZETTELKASTEN_OBJECT_PROPERTY.getValue().getZettel()));
         return zknFileXML;
     }
 
