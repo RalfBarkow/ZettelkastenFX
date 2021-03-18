@@ -32,6 +32,6 @@ public class Demo07HoldSnapshot {
     }
 
     private static Integer str2Integer(String str) {
-        return new Integer(Integer.parseInt(str));
+        return Integer.parseInt(str);
     }
 }
