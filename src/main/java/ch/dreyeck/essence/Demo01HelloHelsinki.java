@@ -11,10 +11,10 @@ public class Demo01HelloHelsinki {
     public static void main(String[] args) throws IOException {
         StreamSink<String> input = new StreamSink<>();
         Stream<String> ouput = input.map(string -> "Hello " + string + " Helsinki !");
-        ouput.listen(x->System.out.println(x));
+        ouput.listen(x -> System.out.println(x));
 
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
-        while (true){
+        while (true) {
             String string = bufferedReader.readLine();
             input.send(string);
         }
