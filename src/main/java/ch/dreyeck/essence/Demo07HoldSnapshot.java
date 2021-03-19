@@ -9,6 +9,16 @@ import java.io.InputStreamReader;
 public class Demo07HoldSnapshot {
     public static void main(String[] args) throws IOException {
 
+        StreamSink<String> input = push();
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        while (true) {
+            String str = br.readLine();
+            input.send(str);
+        }
+    }
+
+    public static StreamSink<String> push() {
         StreamSink<String> input = new StreamSink<>();
 
         Cell<Integer> outputCell =
@@ -28,12 +38,7 @@ public class Demo07HoldSnapshot {
 
         outputCell.listen(x -> System.out.println("outputCell: " + x));
         outputStream.listen(x -> System.out.println("outputStream: " + x));
-
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        while (true) {
-            String str = br.readLine();
-            input.send(str);
-        }
+        return input;
     }
 
     private static boolean isNaturalNumber(String str) {
