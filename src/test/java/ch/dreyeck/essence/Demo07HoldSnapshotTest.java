@@ -26,4 +26,9 @@ class Demo07HoldSnapshotTest {
         Demo07HoldSnapshot.allowSendToBeCalled().send("take snapshot");
     }
 
+    @Test
+    void increment_counter_and_snapshot_of_counter(){
+        Demo07HoldSnapshot.allowSendToBeCalled().send("increment counter and take snapshot");
+    }
+
 }
