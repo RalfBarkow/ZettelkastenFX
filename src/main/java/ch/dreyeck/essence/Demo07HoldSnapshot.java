@@ -5,14 +5,14 @@ import nz.sodium.*;
 import java.io.*;
 
 public class Demo07HoldSnapshot {
-    public final Cell <Integer> counter;
-    public final Stream<OutputStream> out;
-    public final Stream<InputStream> in;
+    public final Cell <Integer> counterCell;
+    public final Stream<OutputStream> outStream;
+    public final Stream<InputStream> inStream;
 
     public Demo07HoldSnapshot() {
-        counter = null;
-        out = new Stream<>();
-        in = new Stream<>();
+        counterCell = null;
+        outStream = new Stream<>();
+        inStream = new Stream<>();
 
         allowSendToBeCalled();
     }
