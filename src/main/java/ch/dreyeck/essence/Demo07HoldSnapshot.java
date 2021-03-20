@@ -2,14 +2,24 @@ package ch.dreyeck.essence;
 
 import nz.sodium.*;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 
 public class Demo07HoldSnapshot {
+    public final Cell <Integer> counter;
+    public final Stream<OutputStream> out;
+    public final Stream<InputStream> in;
+
+    public Demo07HoldSnapshot() {
+        counter = null;
+        out = new Stream<>();
+        in = new Stream<>();
+
+        cell();
+    }
+
     public static void main(String[] args) throws IOException {
 
-        StreamSink<String> input = push();
+        StreamSink<String> input = cell();
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
@@ -18,7 +28,8 @@ public class Demo07HoldSnapshot {
         }
     }
 
-    public static StreamSink<String> push() {
+    public static StreamSink<String> cell() {
+
         StreamSink<String> input = new StreamSink<>();
 
         Cell<Integer> outputCell =
