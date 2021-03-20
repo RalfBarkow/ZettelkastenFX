@@ -25,7 +25,10 @@ public class Demo07HoldSnapshot {
         */
         StreamSink<String> input = allowSendToBeCalled();
 
+        // System.in – the "standard" input stream
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        // Read a line of text and send that String
         while (true) {
             String str = br.readLine();
             input.send(str);
