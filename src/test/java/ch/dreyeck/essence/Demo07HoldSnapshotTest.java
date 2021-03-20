@@ -16,17 +16,12 @@ class Demo07HoldSnapshotTest {
 
     @BeforeEach
     public void setUp() {
+        // Reassign the "standard" output stream.
         System.setOut(new PrintStream(outputStreamCaptor));
     }
 
     @Test
     void send_snapshot_command_and_get_outputStream() {
-
-        // 1) create the desired String
-
-        // 2) convert that String to an InputStream
-
-        // 3) send that InputStream to Demo07HoldSnapshot
 
         createEngine().send("snapshot");
 
@@ -39,7 +34,6 @@ class Demo07HoldSnapshotTest {
     @Test
     void send_increment_counter_command_and_get_counter() {
         createEngine().send("increment counter");
-
         Assertions.assertEquals(
                 "counter = 0\n" +
                         "outputCell: 0\n" +
@@ -51,7 +45,6 @@ class Demo07HoldSnapshotTest {
     @Test
     void send_take_snapshot_command_and_get_snapshot_of_counter() {
         createEngine().send("take snapshot");
-
         Assertions.assertEquals(
                 "counter = 0\n" +
                         "outputCell: 0\n" +
@@ -63,7 +56,6 @@ class Demo07HoldSnapshotTest {
     @Test
     void increment_counter_and_snapshot_of_counter() {
         createEngine().send("increment counter and take snapshot");
-
         Assertions.assertEquals(
                 "counter = 0\n" +
                         "outputCell: 0\n" +
@@ -72,5 +64,4 @@ class Demo07HoldSnapshotTest {
                 outputStreamCaptor.toString()
                         .trim());
     }
-
 }

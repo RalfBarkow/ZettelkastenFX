@@ -17,6 +17,9 @@ public class Demo07HoldSnapshot {
         /*
          Construct a StreamSink, which is a subclass of Stream that adds a method called send(),
          allowing you to push or send values into the stream.
+
+         @return input
+
         */
         StreamSink<String> in = createEngine();
 
@@ -62,7 +65,7 @@ public class Demo07HoldSnapshot {
     }
 
     private static void logMessage(Integer x, String s) {
-        System.out.println(s + x);
+        System.out.println(s + x); //TODO Replace this use of System.out or System.err by a logger.
     }
 
     private static boolean isNaturalNumber(String str) {
