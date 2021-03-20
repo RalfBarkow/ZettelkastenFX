@@ -5,16 +5,9 @@ import nz.sodium.*;
 import java.io.*;
 
 public class Demo07HoldSnapshot {
-    public final Cell <Integer> counterCell;
-    public final Stream<OutputStream> outStream;
-    public final Stream<InputStream> inStream;
 
     public Demo07HoldSnapshot() {
-        counterCell = null;
-        outStream = new Stream<>();
-        inStream = new Stream<>();
-
-        allowSendToBeCalled();
+        createEngine();
     }
 
     public static void main(String[] args) throws IOException {
@@ -23,7 +16,7 @@ public class Demo07HoldSnapshot {
          Construct a StreamSink, which is a subclass of Stream that adds a method called send(),
          allowing you to push or send values into the stream.
         */
-        StreamSink<String> input = allowSendToBeCalled();
+        StreamSink<String> input = createEngine();
 
         // System.in – the "standard" input stream
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -35,7 +28,7 @@ public class Demo07HoldSnapshot {
         }
     }
 
-    public static StreamSink<String> allowSendToBeCalled() {
+    public static StreamSink<String> createEngine() {
 
         StreamSink<String> input = new StreamSink<>();
 
