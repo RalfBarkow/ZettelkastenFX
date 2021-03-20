@@ -2,7 +2,9 @@ package ch.dreyeck.essence;
 
 import nz.sodium.*;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class Demo07HoldSnapshot {
 
@@ -16,18 +18,25 @@ public class Demo07HoldSnapshot {
          Construct a StreamSink, which is a subclass of Stream that adds a method called send(),
          allowing you to push or send values into the stream.
         */
-        StreamSink<String> input = createEngine();
+        StreamSink<String> in = createEngine();
 
         // System.in – the "standard" input stream
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
 
-        // Read a line of text and send that String
-        while (true) {
-            String str = br.readLine();
-            input.send(str);
+            // Read a line of text and send that String
+            do {
+                String str = br.readLine();
+                in.send(str);
+            } while (true);
         }
     }
 
+    /*
+     A stream that allows values to be pushed into it,
+     acting as an interface between the world of I/O and the world of FRP.
+
+     Code that exports StreamSinks for read-only use should downcast to Stream.
+    */
     public static StreamSink<String> createEngine() {
 
         StreamSink<String> input = new StreamSink<>();
@@ -43,13 +52,17 @@ public class Demo07HoldSnapshot {
             counter.loop(inc.snapshot(counter, (__, n_) -> n_ + 1).hold(0));
 
             Stream<Integer> snapshot_of_counter = input.filter(x -> x.contains("take snapshot")).snapshot(counter);
-            counter.listen(x -> System.out.println("counter = " + x));
-            snapshot_of_counter.listen(x -> System.out.println("snapshot of counter = " + x));
+            counter.listen(x -> logMessage(x, "counter = "));
+            snapshot_of_counter.listen(x -> logMessage(x, "snapshot of counter = "));
         });
 
-        outputCell.listen(x -> System.out.println("outputCell: " + x));
-        outputStream.listen(x -> System.out.println("outputStream: " + x));
+        outputCell.listen(x -> logMessage(x, "outputCell: "));
+        outputStream.listen(x -> logMessage(x, "outputStream: "));
         return input;
+    }
+
+    private static void logMessage(Integer x, String s) {
+        System.out.println(s + x);
     }
 
     private static boolean isNaturalNumber(String str) {
