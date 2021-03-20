@@ -19,6 +19,10 @@ public class Demo07HoldSnapshot {
 
     public static void main(String[] args) throws IOException {
 
+        /*
+         Construct a StreamSink, which is a subclass of Stream that adds a method called send(),
+         allowing you to push or send values into the stream.
+        */
         StreamSink<String> input = allowSendToBeCalled();
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
