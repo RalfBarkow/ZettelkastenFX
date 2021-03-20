@@ -9,7 +9,7 @@ class Demo07HoldSnapshotTest {
 
     @Test
     void first_call() throws IOException {
-        Object output = Demo07HoldSnapshot.cell();
+        Object output = Demo07HoldSnapshot.allowSendToBeCalled();
         Assertions.assertEquals("counter = 0\n" +
                 "outputCell: 0", (String) output);
 

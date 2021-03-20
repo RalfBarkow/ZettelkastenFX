@@ -14,12 +14,12 @@ public class Demo07HoldSnapshot {
         out = new Stream<>();
         in = new Stream<>();
 
-        cell();
+        allowSendToBeCalled();
     }
 
     public static void main(String[] args) throws IOException {
 
-        StreamSink<String> input = cell();
+        StreamSink<String> input = allowSendToBeCalled();
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
@@ -28,7 +28,7 @@ public class Demo07HoldSnapshot {
         }
     }
 
-    public static StreamSink<String> cell() {
+    public static StreamSink<String> allowSendToBeCalled() {
 
         StreamSink<String> input = new StreamSink<>();
 
