@@ -1,5 +1,6 @@
 package ch.dreyeck.essence;
 
+import nz.sodium.StreamSink;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,9 +68,10 @@ class Demo07HoldSnapshotTest {
 
     @Test
     void more_than_one_command(){
-        frpEngine().send("10");
-        frpEngine().send("20");
-        frpEngine().send("snapshot");
+        StreamSink<String> into = frpEngine();
+        into.send("10");
+        into.send("20");
+        into.send("snapshot");
 
         Assertions.assertEquals(
                 "counter = 0\n" +
