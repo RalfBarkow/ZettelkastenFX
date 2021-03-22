@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
-import static ch.dreyeck.essence.Demo07HoldSnapshot.createEngine;
+import static ch.dreyeck.essence.Demo07HoldSnapshot.frpEngine;
 
 class Demo07HoldSnapshotTest {
 
@@ -23,7 +23,7 @@ class Demo07HoldSnapshotTest {
     @Test
     void send_snapshot_command_and_get_outputStream() {
 
-        createEngine().send("snapshot");
+        frpEngine().send("snapshot");
 
         Assertions.assertEquals(
                 "counter = 0\noutputCell: 0\noutputStream: 0",
@@ -33,7 +33,7 @@ class Demo07HoldSnapshotTest {
 
     @Test
     void send_increment_counter_command_and_get_counter() {
-        createEngine().send("increment counter");
+        frpEngine().send("increment counter");
         Assertions.assertEquals(
                 "counter = 0\n" +
                         "outputCell: 0\n" +
@@ -44,7 +44,7 @@ class Demo07HoldSnapshotTest {
 
     @Test
     void send_take_snapshot_command_and_get_snapshot_of_counter() {
-        createEngine().send("take snapshot");
+        frpEngine().send("take snapshot");
         Assertions.assertEquals(
                 "counter = 0\n" +
                         "outputCell: 0\n" +
@@ -55,12 +55,28 @@ class Demo07HoldSnapshotTest {
 
     @Test
     void increment_counter_and_snapshot_of_counter() {
-        createEngine().send("increment counter and take snapshot");
+        frpEngine().send("increment counter and take snapshot");
         Assertions.assertEquals(
                 "counter = 0\n" +
                         "outputCell: 0\n" +
                         "snapshot of counter = 0\n" +
                         "counter = 1",
+                outputStreamCaptor.toString()
+                        .trim());
+    }
+
+    @Test
+    void more_than_one_command(){
+        frpEngine().send("10");
+        frpEngine().send("20");
+        frpEngine().send("snapshot");
+
+        Assertions.assertEquals(
+                "counter = 0\n" +
+                        "outputCell: 0\n" +
+                        "outputCell: 10\n" +
+                        "outputCell: 20\n" +
+                        "outputStream: 20",
                 outputStreamCaptor.toString()
                         .trim());
     }
