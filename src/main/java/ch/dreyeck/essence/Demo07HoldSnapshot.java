@@ -9,7 +9,7 @@ import java.io.InputStreamReader;
 public class Demo07HoldSnapshot {
 
     public Demo07HoldSnapshot() {
-        createEngine();
+        frpEngine();
     }
 
     public static void main(String[] args) throws IOException {
@@ -21,7 +21,7 @@ public class Demo07HoldSnapshot {
          @return input
 
         */
-        StreamSink<String> in = createEngine();
+        StreamSink<String> in = frpEngine();
 
         // System.in – the "standard" input stream
         try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
@@ -40,7 +40,7 @@ public class Demo07HoldSnapshot {
 
      Code that exports StreamSinks for read-only use should downcast to Stream.
     */
-    public static StreamSink<String> createEngine() {
+    public static StreamSink<String> frpEngine() {
 
         StreamSink<String> input = new StreamSink<>();
 
