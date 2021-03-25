@@ -1,5 +1,13 @@
-package ch.dreyeck.zettelkasten.input;
+package ch.dreyeck.zettelkasten.zip;
 
+import ch.dreyeck.zettelkasten.xml.Zettelkasten;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Unmarshaller;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -20,6 +28,8 @@ public class ZipFilteredReader {
     private final Path zipLocation;
     private final Path outputDirectory;
 
+    private final ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY = new SimpleObjectProperty<>(new Zettelkasten());
+
     /**
      * Constructs the filtered zip reader passing in the zip file to
      * be expanded by filter and the output directory
@@ -39,8 +49,9 @@ public class ZipFilteredReader {
      * otherwise it is ignored.
      *
      * @param filter the predicate used to compare each entry against
+     * @return
      */
-    public void filteredExpandZipFile(Predicate<ZipEntry> filter) {
+    public ObjectProperty<Zettelkasten> filteredExpandZipFile(Predicate<ZipEntry> filter) {
         // we open the zip file using a java 7 try with resources block
         try (ZipInputStream stream = new ZipInputStream(new FileInputStream(zipLocation.toFile()))) {
 
@@ -56,6 +67,7 @@ public class ZipFilteredReader {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return ZETTELKASTEN_OBJECT_PROPERTY;
     }
 
     /**
@@ -63,8 +75,9 @@ public class ZipFilteredReader {
      * Now we can read the file data from the stream for this current
      * ZipEntry. Just like a normal input stream we continue reading
      * until read() returns 0 or less.
+     * @return
      */
-    private void extractFileFromArchive(ZipInputStream stream, String outputName) {
+    private ObjectProperty<Zettelkasten> extractFileFromArchive(ZipInputStream stream, String outputName) {
         // build the path to the output file and then create the file
         String outpath = outputDirectory + "/" + outputName; //FIXME Remove this hard-coded path-delimiter.
         try (FileOutputStream output = new FileOutputStream(outpath)) {
@@ -80,5 +93,17 @@ public class ZipFilteredReader {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+
+
+        try {
+            final Unmarshaller unmarshaller =
+                    JAXBContext.newInstance(Zettelkasten.class).createUnmarshaller();
+            ZETTELKASTEN_OBJECT_PROPERTY.set((Zettelkasten) unmarshaller.unmarshal(new File(outpath)));
+        } catch (final JAXBException e) {
+            e.printStackTrace();
+        }
+
+        return ZETTELKASTEN_OBJECT_PROPERTY;
     }
 }
