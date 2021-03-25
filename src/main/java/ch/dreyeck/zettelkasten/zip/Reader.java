@@ -15,11 +15,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * ZipFilteredReader shows an example of filtering one or more matching
+ * Reader shows an example of filtering one or more matching
  * files from a ZipInputStream. Instead of unmarshalling the whole archive
  * this uses the Function interface to only unmarshall matching files/ZipEntries.
  */
-public class ZipFilteredReader {
+public class Reader {
     private final Path zipLocation;
     private final ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY;
 
@@ -30,7 +30,7 @@ public class ZipFilteredReader {
      * @param zipLocation                  the zip file
      * @param ZETTELKASTEN_OBJECT_PROPERTY for binding
      */
-    public ZipFilteredReader(String zipLocation, ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY) {
+    public Reader(String zipLocation, ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY) {
         this.zipLocation = Paths.get(zipLocation);
         this.ZETTELKASTEN_OBJECT_PROPERTY = ZETTELKASTEN_OBJECT_PROPERTY;
     }
