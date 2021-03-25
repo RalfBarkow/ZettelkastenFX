@@ -44,7 +44,7 @@ public class Reader {
      * @param filter the predicate used to compare each entry against
      * @return ZETTELKASTEN_OBJECT_PROPERTY
      */
-    public ObjectProperty<Zettelkasten> filteredUnmarshallZipFile(Predicate<ZipEntry> filter)  {
+    public ObjectProperty<Zettelkasten> filter(Predicate<ZipEntry> filter)  {
         // we open the zip file using a java 7 try with resources block
         try (ZipInputStream stream = new ZipInputStream(new FileInputStream(zipLocation.toFile()))) {
             ZipEntry entry;
