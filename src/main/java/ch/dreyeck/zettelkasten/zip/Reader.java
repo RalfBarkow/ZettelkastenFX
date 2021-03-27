@@ -25,7 +25,7 @@ public class Reader {
 
     /**
      * Constructs the filtered zip reader passing in the zip file to
-     * be expanded by filter and the output directory
+     * be expanded by filter and the output ObjectProperty
      *
      * @param zipLocation                  the zip file
      * @param ZETTELKASTEN_OBJECT_PROPERTY for binding
