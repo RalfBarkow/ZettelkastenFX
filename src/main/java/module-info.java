@@ -8,8 +8,8 @@ module ch.dreyeck.zettelkastenfx {
     requires sodium;
     requires javafx.swing;
 
-    opens ch.dreyeck.zettelkastenfx to javafx.fxml;
-    exports ch.dreyeck.zettelkastenfx;
+    opens ch.dreyeck.zettelkasten.fx to javafx.fxml;
+    exports ch.dreyeck.zettelkasten.fx;
 
     opens ch.dreyeck.zettelkasten.xml to jakarta.xml.bind;
     exports ch.dreyeck.zettelkasten.xml;

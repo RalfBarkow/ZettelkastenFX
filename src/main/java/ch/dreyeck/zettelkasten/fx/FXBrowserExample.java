@@ -1,4 +1,4 @@
-package ch.dreyeck.zettelkastenfx;
+package ch.dreyeck.zettelkasten.fx;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;

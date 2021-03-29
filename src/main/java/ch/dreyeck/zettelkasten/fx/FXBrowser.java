@@ -1,4 +1,4 @@
-package ch.dreyeck.zettelkastenfx;
+package ch.dreyeck.zettelkasten.fx;
 
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;

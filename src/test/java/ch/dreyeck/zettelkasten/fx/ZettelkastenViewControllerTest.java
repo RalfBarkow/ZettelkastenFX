@@ -1,4 +1,4 @@
-package ch.dreyeck.zettelkastenfx;
+package ch.dreyeck.zettelkasten.fx;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

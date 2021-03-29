@@ -2,7 +2,7 @@
 //DEPS org.openjfx:javafx-graphics:11.0.2:${os.detected.jfxname}
 //DEPS org.openjfx:javafx-fxml:11.0.2:${os.detected.jfxname}
 
-package ch.dreyeck.zettelkastenfx;
+package ch.dreyeck.zettelkasten.fx;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;

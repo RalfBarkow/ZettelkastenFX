@@ -102,7 +102,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.5</version>
                 <configuration>
-                    <mainClass>ch.dreyeck.zettelkastenfx.App</mainClass>
+                    <mainClass>ch.dreyeck.zettelkasten.fx.App</mainClass>
                 </configuration>
             </plugin>
             <plugin>
@@ -118,7 +118,7 @@
                 <artifactId>client-maven-plugin</artifactId>
                 <version>0.1.38</version>
                 <configuration>
-                    <mainClass>ch.dreyeck.zettelkastenfx.App</mainClass>
+                    <mainClass>ch.dreyeck.zettelkasten.fx.App</mainClass>
                 </configuration>
             </plugin>
         </plugins>
