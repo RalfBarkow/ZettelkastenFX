@@ -45,10 +45,11 @@ public class Reader {
      * @return ZETTELKASTEN_OBJECT_PROPERTY
      */
     public ObjectProperty<Zettelkasten> filter(Predicate<ZipEntry> filter)  {
-        // we open the zip file using a java 7 try with resources block
+        // we open the zip file using a java 7 try with resources block.
+        // So resource will be auto closed.
         try (ZipInputStream stream = new ZipInputStream(new FileInputStream(zipLocation.toFile()))) {
             ZipEntry entry;
-            while ((entry = stream.getNextEntry()) != null) {
+            while ((entry = stream.getNextEntry()) != null) { //FIXME IOException: Stream closed
                 if (filter.test(entry)) {
                     unmarshallFromInputStream(stream);
                 }
