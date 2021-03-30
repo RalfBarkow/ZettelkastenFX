@@ -5,8 +5,8 @@
             <xs:sequence>
                 <xs:element maxOccurs="unbounded" ref="zettel"/>
             </xs:sequence>
-            <xs:attribute name="firstzettel" use="optional" type="xs:integer"/>
-            <xs:attribute name="lastzettel" use="optional" type="xs:integer"/>
+            <xs:attribute name="firstzettel" type="xs:integer"/>
+            <xs:attribute name="lastzettel" type="xs:integer"/>
         </xs:complexType>
     </xs:element>
     <xs:element name="zettel">
