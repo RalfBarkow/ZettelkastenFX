@@ -25,13 +25,13 @@ public class ZettelkastenPresenter implements Initializable {
     @FXML
     private ListView<Zettel> zettelListView;
 
-    public static ListCell<Zettel> call(ListView<Zettel> listView) {
+    public static ListCell<Zettel> call() {
         return new ZettelListViewCell();
     }
 
     @FXML
-    public void initialize() {
-        zettelListView.setCellFactory(listView -> call(listView));
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        zettelListView.setCellFactory(listView -> call());
     }
 
     @FXML
@@ -39,10 +39,5 @@ public class ZettelkastenPresenter implements Initializable {
         Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", ZETTELKASTEN_OBJECT_PROPERTY);
         ZETTELKASTEN_OBJECT_PROPERTY = reader.filter(zipEntry -> zipEntry.getName().equals("zknFile.xml"));
         zettelListView.setItems(FXCollections.<Zettel>observableList(ZETTELKASTEN_OBJECT_PROPERTY.getValue().getZettel()));
-    }
-
-    @Override
-    public void initialize(URL url, ResourceBundle resourceBundle) {
-
     }
 }
