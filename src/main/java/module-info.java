@@ -1,4 +1,4 @@
-module ch.dreyeck.zettelkastenfx {
+module zettelkasten {
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.web;
@@ -7,10 +7,12 @@ module ch.dreyeck.zettelkastenfx {
     requires java.desktop;
     requires sodium;
     requires javafx.swing;
+    requires afterburner.fx;
 
-    opens ch.dreyeck.zettelkasten.fx to javafx.fxml;
+    opens ch.dreyeck.zettelkasten.fx to javafx.fxml, afterburner.fx;
     exports ch.dreyeck.zettelkasten.fx;
 
     opens ch.dreyeck.zettelkasten.xml to jakarta.xml.bind;
     exports ch.dreyeck.zettelkasten.xml;
 }
+

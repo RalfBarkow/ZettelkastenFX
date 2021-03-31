@@ -4,13 +4,11 @@
 
 package ch.dreyeck.zettelkasten.fx;
 
+import ch.dreyeck.zettelkasten.fx.view.ZettelkastenView;
+import com.airhacks.afterburner.injection.Injector;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-
-import java.io.IOException;
 
 
 /**
@@ -18,26 +16,23 @@ import java.io.IOException;
  */
 public class App extends Application {
 
-    private static Scene scene;
-
-    static void setRoot(String fxml) throws IOException {
-        scene.setRoot(loadFXML(fxml));
-    }
-
-    private static Parent loadFXML(String fxml) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource(fxml + ".fxml"));
-        return fxmlLoader.load();
-    }
-
-    public static void main(String[] args) {
-        launch();
-    }
-
     @Override
-    public void start(Stage stage) throws IOException {
-        scene = new Scene(loadFXML("ZettelkastenView"), 640, 480);
+    public void start(Stage stage) throws Exception {
+        ZettelkastenView view = new ZettelkastenView();
+        Scene scene = new Scene(view.getView());
+        stage.setTitle("Zettelkasten");
+        final String uri = getClass().getResource("App.css").toExternalForm();
+        scene.getStylesheets().add(uri);
         stage.setScene(scene);
         stage.show();
     }
 
+    @Override
+    public void stop() throws Exception {
+        Injector.forgetAll();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
 }

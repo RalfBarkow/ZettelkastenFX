@@ -86,6 +86,12 @@
             <artifactId>javafx-web</artifactId>
             <version>16-ea+7</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.dlsc.afterburner/afterburner.fx -->
+        <dependency>
+            <groupId>com.dlsc.afterburner</groupId>
+            <artifactId>afterburner.fx</artifactId>
+            <version>2.1.0</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -122,5 +128,23 @@
                 </configuration>
             </plugin>
         </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*.fxml</include>
+                    <include>**/*.css</include>
+                    <include>**/*.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.xml</include>
+                    <include>**/*.css</include>
+                    <include>**/*.properties</include>
+                </includes>
+            </resource>
+        </resources>
     </build>
 </project>
