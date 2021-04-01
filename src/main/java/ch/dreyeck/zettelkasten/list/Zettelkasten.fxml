@@ -13,7 +13,8 @@
         <rowConstraints>
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         </rowConstraints>
-        <Button fx:id="btnLoad" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#getZknFileXML" text="Load" GridPane.columnIndex="1" />
+        <Button fx:id="btnLoad" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#getZknFileXML"
+                text="Load" GridPane.columnIndex="1"/>
       <TextField />
     </GridPane>
     <ListView fx:id="zettelListView" />
