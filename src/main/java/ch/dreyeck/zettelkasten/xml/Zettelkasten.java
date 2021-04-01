@@ -2,7 +2,9 @@
 // Diese Datei wurde mit der JavaTM Architecture for XML Binding(JAXB) Reference Implementation, v2.2.8-b130911.1802 generiert 
 // Siehe <a href="http://java.sun.com/xml/jaxb">http://java.sun.com/xml/jaxb</a> 
 // Änderungen an dieser Datei gehen bei einer Neukompilierung des Quellschemas verloren. 
-// Generiert: 2019.10.06 um 10:17:37 AM CEST 
+// Generiert: 2019.10.06 um 10:17:37 AM CEST
+//
+// Geändert: 2021-03-29 firstzettel and lastzettel no longer required ?!
 //
 
 
@@ -42,9 +44,9 @@ public class Zettelkasten {
 
     @XmlElement(required = true)
     protected List<Zettel> zettel;
-    @XmlAttribute(name = "firstzettel", required = true)
+    @XmlAttribute(name = "firstzettel", required = false)
     protected BigInteger firstzettel;
-    @XmlAttribute(name = "lastzettel", required = true)
+    @XmlAttribute(name = "lastzettel", required = false)
     protected BigInteger lastzettel;
 
     /**
