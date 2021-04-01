@@ -1,4 +1,4 @@
-package ch.dreyeck.zettelkasten.fx.view;
+package ch.dreyeck.zettelkasten.list;
 
 import ch.dreyeck.zettelkasten.xml.Zettel;
 import ch.dreyeck.zettelkasten.xml.Zettelkasten;

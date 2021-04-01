@@ -1,10 +1,6 @@
-//DEPS org.openjfx:javafx-controls:11.0.2:${os.detected.jfxname}
-//DEPS org.openjfx:javafx-graphics:11.0.2:${os.detected.jfxname}
-//DEPS org.openjfx:javafx-fxml:11.0.2:${os.detected.jfxname}
+package ch.dreyeck.zettelkasten;
 
-package ch.dreyeck.zettelkasten.fx;
-
-import ch.dreyeck.zettelkasten.fx.view.ZettelkastenView;
+import ch.dreyeck.zettelkasten.list.ZettelkastenView;
 import com.airhacks.afterburner.injection.Injector;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -16,8 +12,12 @@ import javafx.stage.Stage;
  */
 public class App extends Application {
 
+    public static void main(String[] args) {
+        launch(args);
+    }
+
     @Override
-    public void start(Stage stage) throws Exception {
+    public void start(Stage stage) {
         ZettelkastenView view = new ZettelkastenView();
         Scene scene = new Scene(view.getView());
         stage.setTitle("Zettelkasten");
@@ -28,11 +28,7 @@ public class App extends Application {
     }
 
     @Override
-    public void stop() throws Exception {
+    public void stop() {
         Injector.forgetAll();
-    }
-
-    public static void main(String[] args) {
-        launch(args);
     }
 }

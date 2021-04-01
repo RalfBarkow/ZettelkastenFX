@@ -1,4 +1,4 @@
-package ch.dreyeck.zettelkasten.fx;
+package ch.dreyeck.zettelkasten;
 
 import com.airhacks.afterburner.views.FXMLView;
 
