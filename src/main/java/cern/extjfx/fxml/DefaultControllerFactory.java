@@ -4,8 +4,8 @@
 
 package cern.extjfx.fxml;
 
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;

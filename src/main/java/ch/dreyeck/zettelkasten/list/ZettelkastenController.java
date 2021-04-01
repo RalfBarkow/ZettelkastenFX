@@ -7,15 +7,11 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 
-import java.net.URL;
-import java.util.ResourceBundle;
-
-public class ZettelkastenController implements Initializable {
+public class ZettelkastenController {
 
     private ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY = new SimpleObjectProperty<>(new Zettelkasten());
 
@@ -30,7 +26,7 @@ public class ZettelkastenController implements Initializable {
     }
 
     @FXML
-    public void initialize(URL url, ResourceBundle resourceBundle) {
+    public void initialize() {
         zettelListView.setCellFactory(listView -> call());
     }
 
