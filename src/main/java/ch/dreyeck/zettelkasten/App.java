@@ -1,7 +1,7 @@
 package ch.dreyeck.zettelkasten;
 
-import ch.dreyeck.zettelkasten.list.ZettelkastenView;
-import com.airhacks.afterburner.injection.Injector;
+import cern.extjfx.fxml.FxmlView;
+import ch.dreyeck.zettelkasten.list.ZettelkastenController;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -18,17 +18,16 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) {
-        ZettelkastenView view = new ZettelkastenView();
-        Scene scene = new Scene(view.getView());
+        FxmlView mainView = new FxmlView(ZettelkastenController.class);
+        Scene scene = new Scene(mainView.getRootNode());
+        //ZettelkastenController zettelkastenController = mainView.getController();
+        //zettelkastenController.initialize();
         stage.setTitle("Zettelkasten");
-        final String uri = getClass().getResource("App.css").toExternalForm();
-        scene.getStylesheets().add(uri);
         stage.setScene(scene);
         stage.show();
     }
 
     @Override
     public void stop() {
-        Injector.forgetAll();
     }
 }
