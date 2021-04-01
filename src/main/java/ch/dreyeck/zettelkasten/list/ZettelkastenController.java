@@ -15,7 +15,7 @@ import javafx.scene.control.ListView;
 import java.net.URL;
 import java.util.ResourceBundle;
 
-public class ZettelkastenPresenter implements Initializable {
+public class ZettelkastenController implements Initializable {
 
     private ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY = new SimpleObjectProperty<>(new Zettelkasten());
 

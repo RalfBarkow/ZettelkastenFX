@@ -47,7 +47,7 @@ public class ZettelkastenFile {
             };
 
     private static Optional<String> loadZknFileXML(String pathname, Optional<String> zknFileXML) throws JAXBException {
-        // loadZknFileXML() ; see ZettelkastenPresenter.java
+        // loadZknFileXML() ; see ZettelkastenController.java
         final Unmarshaller unmarshaller =
                 JAXBContext.newInstance(Zettelkasten.class).createUnmarshaller();
         ZETTELKASTEN_OBJECT_PROPERTY.set((Zettelkasten) unmarshaller.unmarshal(new File(pathname)));
