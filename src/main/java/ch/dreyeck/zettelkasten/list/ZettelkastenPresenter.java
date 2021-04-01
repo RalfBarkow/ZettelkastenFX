@@ -1,4 +1,4 @@
-package ch.dreyeck.zettelkasten.fx;
+package ch.dreyeck.zettelkasten.list;
 
 import ch.dreyeck.zettelkasten.xml.Zettel;
 import ch.dreyeck.zettelkasten.xml.Zettelkasten;
@@ -7,11 +7,15 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 
-public class ZettelkastenViewController {
+import java.net.URL;
+import java.util.ResourceBundle;
+
+public class ZettelkastenPresenter implements Initializable {
 
     private ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY = new SimpleObjectProperty<>(new Zettelkasten());
 
@@ -21,13 +25,13 @@ public class ZettelkastenViewController {
     @FXML
     private ListView<Zettel> zettelListView;
 
-    public static ListCell<Zettel> call(ListView<Zettel> listView) {
+    public static ListCell<Zettel> call() {
         return new ZettelListViewCell();
     }
 
     @FXML
-    public void initialize() {
-        zettelListView.setCellFactory(listView -> call(listView));
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        zettelListView.setCellFactory(listView -> call());
     }
 
     @FXML
