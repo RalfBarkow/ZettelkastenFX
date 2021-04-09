@@ -21,7 +21,8 @@ class ReaderTest {
     @Test
     void getContent() {
         Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", new SimpleObjectProperty<>());
-        String zettelContentCell = getContent(reader, 1);
+        String zettelContentCell = getContent(reader,
+                1);
         assertFalse(zettelContentCell.isEmpty());
         System.out.println("zettelContentCell: " + zettelContentCell);
     }
