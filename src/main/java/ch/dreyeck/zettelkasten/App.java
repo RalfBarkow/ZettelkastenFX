@@ -20,8 +20,6 @@ public class App extends Application {
     public void start(Stage stage) {
         FxmlView mainView = new FxmlView(ZettelkastenController.class);
         Scene scene = new Scene(mainView.getRootNode());
-        //ZettelkastenController zettelkastenController = mainView.getController();
-        //zettelkastenController.initialize();
         stage.setTitle("Zettelkasten");
         stage.setScene(scene);
         stage.show();
@@ -29,5 +27,6 @@ public class App extends Application {
 
     @Override
     public void stop() {
+        //method is empty
     }
 }

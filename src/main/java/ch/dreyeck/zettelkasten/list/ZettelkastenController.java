@@ -32,13 +32,14 @@ public class ZettelkastenController {
     }
 
     @FXML
-    void getZknFileXML() {
+    void readZknFileXMLAndSetDataModelForListView() {
         Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", ZETTELKASTEN_OBJECT_PROPERTY);
         ZETTELKASTEN_OBJECT_PROPERTY = reader.filter(zipEntry -> zipEntry.getName().equals("zknFile.xml"));
         zettelListView.setItems(FXCollections.<Zettel>observableList(ZETTELKASTEN_OBJECT_PROPERTY.getValue().getZettel()));
     }
 
-    @FXML public void handleMouseClick(MouseEvent arg0) {
+    @FXML
+    public void handleMouseClick(MouseEvent arg0) {
         System.out.println("clicked on " + zettelListView.getSelectionModel().getSelectedItem());
     }
 }
