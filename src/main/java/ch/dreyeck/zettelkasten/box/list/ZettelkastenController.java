@@ -1,5 +1,7 @@
-package ch.dreyeck.zettelkasten.list;
+package ch.dreyeck.zettelkasten.box.list;
 
+import cern.extjfx.fxml.FxmlView;
+import ch.dreyeck.zettelkasten.box.ZettelController;
 import ch.dreyeck.zettelkasten.xml.Zettel;
 import ch.dreyeck.zettelkasten.xml.Zettelkasten;
 import ch.dreyeck.zettelkasten.zip.Reader;
@@ -7,10 +9,12 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.Stage;
 
 public class ZettelkastenController {
 
@@ -41,5 +45,21 @@ public class ZettelkastenController {
     @FXML
     public void handleMouseClick(MouseEvent arg0) {
         System.out.println("clicked on " + zettelListView.getSelectionModel().getSelectedItem());
+
+        // showStageZettel(zettelListView.getSelectionModel().getSelectedItem());
+        showStageZettel();
+
     }
+
+    // private void showStageZettel(Zettel selectedItem) {
+    // }
+    private void showStageZettel() {
+        Stage stageZettel = new Stage();
+        FxmlView zettelView = new FxmlView(ZettelController.class);
+        Scene scene = new Scene(zettelView.getRootNode());
+        stageZettel.setTitle("Zettel");
+        stageZettel.setScene(scene);
+        stageZettel.show();
+    }
+
 }

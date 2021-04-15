@@ -1,4 +1,4 @@
-package ch.dreyeck.zettelkasten;
+package ch.dreyeck.essence;
 
 import ch.dreyeck.zettelkasten.input.IsBusy;
 import nz.sodium.*;

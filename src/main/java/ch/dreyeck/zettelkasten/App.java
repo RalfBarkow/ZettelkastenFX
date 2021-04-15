@@ -1,7 +1,7 @@
 package ch.dreyeck.zettelkasten;
 
 import cern.extjfx.fxml.FxmlView;
-import ch.dreyeck.zettelkasten.list.ZettelkastenController;
+import ch.dreyeck.zettelkasten.box.list.ZettelkastenController;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;

@@ -1,4 +1,4 @@
-package ch.dreyeck.zettelkasten.list;
+package ch.dreyeck.zettelkasten.box.list;
 
 import ch.dreyeck.zettelkasten.xml.Zettel;
 import javafx.scene.control.ListCell;
