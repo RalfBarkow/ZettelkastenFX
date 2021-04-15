@@ -55,7 +55,7 @@ public class ZettelkastenController {
         Scene scene = new Scene(zettelView.getRootNode());
 
         ZettelController zettelController = zettelView.getController();
-        zettelController.showContent(selectedItem);
+        zettelController.show(selectedItem);
 
         stageZettel.setTitle("Zettel");
         stageZettel.setScene(scene);
