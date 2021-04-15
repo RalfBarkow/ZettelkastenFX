@@ -44,19 +44,19 @@ public class ZettelkastenController {
 
     @FXML
     public void handleMouseClick(MouseEvent arg0) {
-        System.out.println("clicked on " + zettelListView.getSelectionModel().getSelectedItem());
-
-        // showStageZettel(zettelListView.getSelectionModel().getSelectedItem());
-        showStageZettel();
-
+        showStageZettel(zettelListView.getSelectionModel().getSelectedItem());
     }
 
-    // private void showStageZettel(Zettel selectedItem) {
-    // }
-    private void showStageZettel() {
+    private void showStageZettel(Zettel selectedItem) {
+        System.out.println("clicked on " + selectedItem);
+
         Stage stageZettel = new Stage();
         FxmlView zettelView = new FxmlView(ZettelController.class);
         Scene scene = new Scene(zettelView.getRootNode());
+
+        ZettelController zettelController = zettelView.getController();
+        zettelController.showContent(selectedItem);
+
         stageZettel.setTitle("Zettel");
         stageZettel.setScene(scene);
         stageZettel.show();
