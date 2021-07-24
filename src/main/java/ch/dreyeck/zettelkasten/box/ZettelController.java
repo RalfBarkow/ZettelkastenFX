@@ -18,7 +18,6 @@ public class ZettelController {
             textAreaZettelTitle.setText(selectedItem.getTitle());
             htmlEditorZettelContent.setHtmlText(selectedItem.getContent());
         } else add(selectedItem);
-
     }
 
     public void add(Zettel selectedItem) {}

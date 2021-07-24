@@ -50,6 +50,11 @@ public class ZettelkastenController {
     private void showStageZettel(Zettel selectedItem) {
         System.out.println("clicked on " + selectedItem);
 
+        /*
+         Here we want to learn to call an already existing *Stage* of a *Zettel* (note)
+         instead of creating a new Stage every time when *handleMouseClick* calls *showStageZettel*.
+         https://wiki.ralfbarkow.ch/view/defaultcontrollerfactory
+        */
         Stage stageZettel = new Stage();
         FxmlView zettelView = new FxmlView(ZettelController.class);
         Scene scene = new Scene(zettelView.getRootNode());
