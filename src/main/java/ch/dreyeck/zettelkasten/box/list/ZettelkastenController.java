@@ -45,16 +45,20 @@ public class ZettelkastenController {
     @FXML
     public void handleMouseClick(MouseEvent arg0) {
         showStageZettel(zettelListView.getSelectionModel().getSelectedItem());
+        // getSelectedItem
+        // Note that the returned value is a snapshot in time - if you wish to observe the selection model for changes to the selected item, […]
+
     }
 
     private void showStageZettel(Zettel selectedItem) {
         System.out.println("clicked on " + selectedItem);
 
-        /*
-         Here we want to learn to call an already existing *Stage* of a *Zettel* (note)
-         instead of creating a new Stage every time when *handleMouseClick* calls *showStageZettel*.
-         https://wiki.ralfbarkow.ch/view/defaultcontrollerfactory
-        */
+        // TODO getController(selectedModel)
+        // all the dependencies (models, services, etc.)
+        // are treated as singletons and kept in an internal cache
+
+        // FIXME further mouse clicks should show the same Zettel
+
         Stage stageZettel = new Stage();
         FxmlView zettelView = new FxmlView(ZettelController.class);
         Scene scene = new Scene(zettelView.getRootNode());
