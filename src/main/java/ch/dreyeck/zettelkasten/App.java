@@ -11,18 +11,17 @@ import javafx.stage.Stage;
  * JavaFX App
  */
 public class App extends Application {
-
-    public static void main(String[] args) {
-        launch(args);
-    }
-
     @Override
-    public void start(Stage stage) {
+    public void start(Stage stage) throws Exception {
         FxmlView mainView = new FxmlView(ZettelkastenController.class);
         Scene scene = new Scene(mainView.getRootNode());
         stage.setTitle("Zettelkasten");
         stage.setScene(scene);
         stage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
     }
 
     @Override
