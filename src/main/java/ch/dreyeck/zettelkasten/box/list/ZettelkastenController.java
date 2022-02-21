@@ -14,7 +14,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.input.MouseEvent;
-import javafx.stage.Stage;
 
 public class ZettelkastenController {
 
@@ -43,32 +42,22 @@ public class ZettelkastenController {
     }
 
     @FXML
-    public void handleMouseClick(MouseEvent arg0) {
-        showStageZettel(zettelListView.getSelectionModel().getSelectedItem());
+    private void handleMouseClick(MouseEvent arg0) {
+        showZettel(zettelListView.getSelectionModel().getSelectedItem());
         // getSelectedItem
         // Note that the returned value is a snapshot in time - if you wish to observe the selection model for changes to the selected item, […]
 
     }
 
-    private void showStageZettel(Zettel selectedItem) {
+    private FxmlView zettelView = new FxmlView(ZettelController.class);
+    private Scene scene = new Scene(zettelView.getRootNode());
+
+    private void showZettel(Zettel selectedItem) {
         System.out.println("clicked on " + selectedItem);
-
-        // TODO getController(selectedModel)
-        // all the dependencies (models, services, etc.)
-        // are treated as singletons and kept in an internal cache
-
-        // FIXME further mouse clicks should show the same Zettel
-
-        Stage stageZettel = new Stage();
-        FxmlView zettelView = new FxmlView(ZettelController.class);
-        Scene scene = new Scene(zettelView.getRootNode());
-
+        
         ZettelController zettelController = zettelView.getController();
-        zettelController.show(selectedItem);
+        zettelController.show(selectedItem, scene);
 
-        stageZettel.setTitle("Zettel");
-        stageZettel.setScene(scene);
-        stageZettel.show();
     }
 
 }
