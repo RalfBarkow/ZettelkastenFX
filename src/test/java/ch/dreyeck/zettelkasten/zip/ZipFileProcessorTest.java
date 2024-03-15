@@ -1,50 +1,46 @@
+package ch.dreyeck.zettelkasten.zip;
+
 import ch.dreyeck.zettelkasten.zip.ZipFileProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.stubbing.OngoingStubbing;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Enumeration;
+import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ZipFileProcessorTest {
+
     private ZipFileProcessor zipFileProcessor;
-    private ZipFile zipFile;
-    private String testData = "This is a test";
+    private ZipFile mockZipFile;
+    private InputStream mockInputStream;
 
     @BeforeEach
-    public void setUp() {
-        zipFile = mock(ZipFile.class);
-        zipFileProcessor = new ZipFileProcessor();
+    void setUp() throws IOException {
+        // Mock the ZipFile object
+        mockZipFile = mock(ZipFile.class);
+
+        // Mock the InputStream
+        String testData = "This is a test";
+        byte[] testDataBytes = testData.getBytes();
+        mockInputStream = new ByteArrayInputStream(testDataBytes);
+
+        // Mock the behavior of ZipFile methods
+        when(mockZipFile.getEntry("test.txt")).thenReturn(new ZipEntry("test.txt"));
+        when(mockZipFile.getInputStream(any(ZipEntry.class))).thenReturn(mockInputStream);
+
+        // Create the ZipFileProcessor instance with the mocked ZipFile
+        zipFileProcessor = new ZipFileProcessor(mockZipFile);
     }
 
     @Test
-    public void testProcessZipFile() throws IOException {
-        Enumeration<? extends ZipEntry> mockEnumeration = mock(Enumeration.class);
-        // Adjusted the type of enumerationOngoingStubbing to match the wildcard capture
-        OngoingStubbing<? extends Enumeration<? extends ZipEntry>> enumerationOngoingStubbing;
-
-        // Mock ZipEntry
-        ZipEntry zipEntry = new ZipEntry("test.txt");
-
-        // Mock the behavior of mockEnumeration
-        when(mockEnumeration.hasMoreElements()).thenReturn(true).thenReturn(false);
-        when(mockEnumeration.nextElement()).thenReturn(zipEntry);
-
-        // Mock InputStream for the ZipEntry
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(testData.getBytes());
-        when(zipFile.getInputStream(zipEntry)).thenReturn(inputStream);
-
-        // Test ZipFileProcessor
-        zipFileProcessor.processZipFile("/tmp/file.zip");
+    void testProcessZipFile() throws IOException {
+        // Process the zip file
+        zipFileProcessor.processZipFile();
 
         // Assert that the processed data matches the test data
-        assertEquals(testData, zipFileProcessor.getProcessedData());
+        assertEquals("This is a test", zipFileProcessor.getProcessedData());
     }
 }
