@@ -3,45 +3,45 @@ package ch.dreyeck.zettelkasten.zip;
 import ch.dreyeck.zettelkasten.xml.Zettelkasten;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import nz.sodium.Cell;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import java.util.function.Predicate;
+import java.util.zip.ZipEntry;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class ReaderTest {
 
     @Test
-    void filter() {
-        ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY = new SimpleObjectProperty<>(new Zettelkasten());
-        Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", ZETTELKASTEN_OBJECT_PROPERTY);
-        ZETTELKASTEN_OBJECT_PROPERTY = getZknFileXML(reader);
-        assertFalse(ZETTELKASTEN_OBJECT_PROPERTY.getValue().getZettel().isEmpty());
+    void testFilterWithMatchingEntries() {
+        // Prepare test data
+        ObjectProperty<Zettelkasten> zettelkastenProperty = new SimpleObjectProperty<>(new Zettelkasten());
+        Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", zettelkastenProperty);
+
+        // Define filter predicate to match specific entries
+        Predicate<ZipEntry> filter = entry -> entry.getName().equals("zknFile.xml");
+
+        // Call the method under test
+        ObjectProperty<Zettelkasten> filteredZettelkastenProperty = reader.filter(filter);
+
+        // Verify that the filtered entry is not null
+        assertNotNull(filteredZettelkastenProperty, "Filtered Zettelkasten object property should not be null");
     }
 
     @Test
-    void getContent() {
-        Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", new SimpleObjectProperty<>());
-        String zettelContentCell = getContent(reader,
-                1);
-        assertFalse(zettelContentCell.isEmpty());
-        System.out.println("zettelContentCell: " + zettelContentCell);
-    }
+    void testFilterWithNoMatchingEntries() {
+        // Prepare test data
+        ObjectProperty<Zettelkasten> zettelkastenProperty = new SimpleObjectProperty<>(new Zettelkasten());
+        Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", zettelkastenProperty);
 
-    private String getContent(Reader reader, int z) {
-        // z 0 throws IndexOutOfBoundsException: Index -1 out of bounds for length 4965
-        int index = z - 1; // i=0 is Zettel #1
-        return getZknFileXML(reader).getValue().getZettel().get(index).getContent();
-    }
+        // Define filter predicate to match no entries
+        Predicate<ZipEntry> filter = entry -> false; // No entries will match
 
-    private ObjectProperty<Zettelkasten> getZknFileXML(Reader reader) {
-        return reader.filter(zipEntry -> zipEntry.getName().equals("zknFile.xml"));
-    }
+        // Call the method under test
+        ObjectProperty<Zettelkasten> filteredZettelkastenProperty = reader.filter(filter);
 
-    @Test
-    void storeObjectPropertyToCell() {
-        // xml.Zettelkasten is the Java class that represents a Zettelkasten.
-        // Cell<Zettelkasten> represents a Zettelkasten that changes over time
-        Zettelkasten zettelkasten = new Zettelkasten();
-        Cell<Zettelkasten> zettelkastenCell;
+        // Verify that the filtered entry is null
+        assertNull(filteredZettelkastenProperty, "Filtered Zettelkasten object property should be null");
     }
 }

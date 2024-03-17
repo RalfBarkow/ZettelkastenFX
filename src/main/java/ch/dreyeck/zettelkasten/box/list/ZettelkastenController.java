@@ -15,9 +15,12 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.input.MouseEvent;
 
+import java.io.IOException;
+
 public class ZettelkastenController {
 
-    private ObjectProperty<Zettelkasten> ZETTELKASTEN_OBJECT_PROPERTY = new SimpleObjectProperty<>(new Zettelkasten());
+    private ObjectProperty<Zettelkasten> zettelkastenObjectProperty = new SimpleObjectProperty<>(new Zettelkasten());
+    private Reader reader;
 
     @FXML
     public Button btnLoad;
@@ -25,39 +28,61 @@ public class ZettelkastenController {
     @FXML
     private ListView<Zettel> zettelListView;
 
-    public static ListCell<Zettel> call() {
+    private FxmlView zettelView = new FxmlView(ZettelController.class);
+    private Scene scene = new Scene(zettelView.getRootNode());
+
+    @FXML
+    public void initialize() {
+        zettelListView.setCellFactory(listView -> createZettelListViewCell());
+    }
+
+    private ListCell<Zettel> createZettelListViewCell() {
         return new ZettelListViewCell();
     }
 
     @FXML
-    public void initialize() {
-        zettelListView.setCellFactory(listView -> call());
-    }
-
-    @FXML
     void readZknFileXMLAndSetDataModelForListView() {
-        Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", ZETTELKASTEN_OBJECT_PROPERTY);
-        ZETTELKASTEN_OBJECT_PROPERTY = reader.filter(zipEntry -> zipEntry.getName().equals("zknFile.xml"));
-        zettelListView.setItems(FXCollections.<Zettel>observableList(ZETTELKASTEN_OBJECT_PROPERTY.getValue().getZettel()));
+        try {
+            zettelkastenObjectProperty.set(getZettelkasten());
+            zettelListView.setItems(FXCollections.observableList(zettelkastenObjectProperty.get().getZettel()));
+        } catch (IOException e) {
+            handleReadError(e);
+        }
+    }
+
+    private Zettelkasten getZettelkasten() throws IOException {
+        ensureReaderInitialized();
+        ObjectProperty<Zettelkasten> zettelkastenProperty = reader.filter(zipEntry -> zipEntry.getName().equals("zknFile.xml"));
+        if (zettelkastenProperty != null) {
+            return zettelkastenProperty.get();
+        } else {
+            // Handle the case where zettelkastenObjectProperty is null
+            // For example, display an error message or take appropriate action
+            throw new IOException("Zettelkasten object property is null");
+        }
+    }
+
+    private void ensureReaderInitialized() {
+        if (reader == null) {
+            reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", zettelkastenObjectProperty);
+        }
     }
 
     @FXML
-    private void handleMouseClick(MouseEvent arg0) {
-        showZettel(zettelListView.getSelectionModel().getSelectedItem());
-        // getSelectedItem
-        // Note that the returned value is a snapshot in time - if you wish to observe the selection model for changes to the selected item, […]
-
+    private void handleMouseClick(MouseEvent event) {
+        Zettel selectedItem = zettelListView.getSelectionModel().getSelectedItem();
+        if (selectedItem != null) {
+            showZettel(selectedItem);
+        }
     }
-
-    private FxmlView zettelView = new FxmlView(ZettelController.class);
-    private Scene scene = new Scene(zettelView.getRootNode());
 
     private void showZettel(Zettel selectedItem) {
-        System.out.println("clicked on " + selectedItem);
-        
+        System.out.println("Clicked on " + selectedItem);
         ZettelController zettelController = zettelView.getController();
         zettelController.show(selectedItem, scene);
-
     }
 
+    private void handleReadError(Exception e) {
+        e.printStackTrace(); // Handle the error appropriately, e.g., show an alert dialog
+    }
 }

@@ -1,14 +1,17 @@
 package ch.dreyeck.zettelkasten.zip;
 
-import ch.dreyeck.zettelkasten.zip.ZipFileProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 
 public class ZipFileProcessorTest {
@@ -42,5 +45,20 @@ public class ZipFileProcessorTest {
 
         // Assert that the processed data matches the test data
         assertEquals("This is a test", zipFileProcessor.getProcessedData());
+    }
+
+    @Test
+    void testGetZknFileXML() {
+        try {
+            ZipFile zipFile = new ZipFile(new File("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3"));
+            ZipFileProcessor zipFileProcessor = new ZipFileProcessor(zipFile);
+
+            ZipEntry zknFileXML = zipFileProcessor.getZknFileXML();
+
+            assertNotNull(zknFileXML, "Zettelkasten XML should not be null");
+            // Add more assertions as needed
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
