@@ -1,5 +1,8 @@
 package ch.dreyeck.vector;
 
+import java.util.List;
+import java.util.Random;
+
 public class TextHypervectorFormation {
 
     // Method to generate a random vector
@@ -14,22 +17,40 @@ public class TextHypervectorFormation {
 
     // Method to form the text hypervector
     public static int[] formTextHypervector(String text) {
-        // Generate a random vector for each trigram in the text
-        int trigramCount = text.length() - 2;
-        int[] textHypervector = new int[trigramCount * 10000];
-        for (int i = 0; i < trigramCount; i++) {
+        // Extract trigrams from the text using the TrigramExtractor
+        List<String> trigrams = TrigramExtractor.extractTrigrams(text);
+
+        // Initialize the hypervector with enough space for all trigrams
+        int[] textHypervector = new int[trigrams.size() * 10000];
+
+        // Iterate over each trigram
+        for (int i = 0; i < trigrams.size(); i++) {
+            // Generate a random vector for the trigram
             int[] randomVector = generateRandomVector();
+
+            // Copy the random vector to the corresponding position in the hypervector
             for (int j = 0; j < 10000; j++) {
                 textHypervector[i * 10000 + j] = randomVector[j];
             }
         }
+
         return textHypervector;
+    }
+
+    // Method to generate a random vector for Latin alphabets and space
+    public static int[] generateRandomVectorForLatinAlphabets() {
+        int[] latinAlphabetsVector = new int[26 * 10000 + 10000]; // 26 alphabets + 1 for space
+        Random random = new Random();
+        for (int i = 0; i < latinAlphabetsVector.length; i++) {
+            latinAlphabetsVector[i] = random.nextInt(2); // Generates 0 or 1
+        }
+        return latinAlphabetsVector;
     }
 
     // Example of how to use the TextHypervectorFormation class
     public static void main(String[] args) {
-        // Example text
-        String exampleText = "This is an example text.";
+        // Example text containing all 26 Latin alphabets and space
+        String exampleText = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
 
         // Form the text hypervector
         int[] hypervector = formTextHypervector(exampleText);
@@ -43,4 +64,5 @@ public class TextHypervectorFormation {
             System.out.print(hypervector[i] + " ");
         }
     }
+
 }
