@@ -6,16 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TextHypervectorFormationTest {
 
-    // Public method calling the private method
-    public static int[] generateHypervector(String text) {
-        return TextHypervectorFormation.formTextHypervector(text);
-    }
-
     @Test
-    public void testGenerateHypervector() {
+    public void testFormTextHypervector() {
         // Test with a simple sentence
         String testSentence = "Welcome";
-        int[] textHypervector = generateHypervector(testSentence);
+        int[] textHypervector = TextHypervectorFormation.formTextHypervector(testSentence);
 
         // Assert that textHypervector is not null
         assertNotNull(textHypervector);
