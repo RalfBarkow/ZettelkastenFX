@@ -8,8 +8,9 @@ import org.junit.jupiter.api.Test;
 import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+
 
 class ReaderTest {
 
@@ -41,7 +42,7 @@ class ReaderTest {
         // Call the method under test
         ObjectProperty<Zettelkasten> filteredZettelkastenProperty = reader.filter(filter);
 
-        // Verify that the filtered entry is null
-        assertNull(filteredZettelkastenProperty, "Filtered Zettelkasten object property should be null");
+        // Verify that the filtered entry is an ObjectProperty with a null value
+        assertEquals(null, filteredZettelkastenProperty.getValue(), "Filtered Zettelkasten object property should be null");
     }
 }

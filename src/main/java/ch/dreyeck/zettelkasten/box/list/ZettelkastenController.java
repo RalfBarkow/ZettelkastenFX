@@ -64,7 +64,7 @@ public class ZettelkastenController {
 
     private void ensureReaderInitialized() {
         if (reader == null) {
-            reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", zettelkastenObjectProperty);
+            reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/tekom.zkn3", zettelkastenObjectProperty);
         }
     }
 

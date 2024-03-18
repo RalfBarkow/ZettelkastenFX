@@ -37,6 +37,8 @@ public class Reader {
                 zettelkastenObjectProperty.set(zettelkasten);
             } else {
                 logger.log(Level.INFO, "Filter rejected the entry: " + zknFileEntry.getName());
+                // Set null to clear the property when filter rejects the entry
+                zettelkastenObjectProperty.set(null);
             }
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Error occurred while processing the zip file: ", e);

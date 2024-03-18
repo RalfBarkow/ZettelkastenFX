@@ -44,9 +44,9 @@ public class Zettelkasten {
 
     @XmlElement(required = true)
     protected List<Zettel> zettel;
-    @XmlAttribute(name = "firstzettel")
+    @XmlAttribute(name = "firstzettel", required = false)
     protected BigInteger firstzettel;
-    @XmlAttribute(name = "lastzettel")
+    @XmlAttribute(name = "lastzettel", required = false)
     protected BigInteger lastzettel;
 
     /**

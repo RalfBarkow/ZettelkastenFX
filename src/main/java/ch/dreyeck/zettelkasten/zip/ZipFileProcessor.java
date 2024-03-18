@@ -19,6 +19,10 @@ public class ZipFileProcessor {
         this.zipFile = zipFile;
     }
 
+    public ZipFileProcessor() {
+        this.zipFile = null;
+    }
+
     public ZipFile getZipFile() {
         return zipFile;
     }
@@ -41,21 +45,15 @@ public class ZipFileProcessor {
         return null;
     }
 
-    public Zettelkasten unmarshall() throws JAXBException, IOException {
+    public Zettelkasten unmarshall(String fileName) throws JAXBException, IOException {
         JAXBContext context = JAXBContext.newInstance(Zettelkasten.class);
         return (Zettelkasten) context.createUnmarshaller()
-                .unmarshal(new FileReader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/zknFile.xml"));
+                .unmarshal(new FileReader(fileName));
     }
 
     public Zettelkasten getProcessedData() {
         return processedData;
     }
-
-    // Special case of processZipFile for zknFile.xml
-    //public String getZknFileXML() throws IOException {
-    //    processZipFile();
-    //    return processedData;
-    //}
 
     public ZipEntry getZknFileXML() throws IOException {
         return zipFile.getEntry("zknFile.xml");

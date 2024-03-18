@@ -56,8 +56,7 @@ public class ZipFileProcessorTest {
 
     @Test
     void testUnmarshal() throws JAXBException, IOException, javax.xml.bind.JAXBException {
-        ZipFile zipFile = new ZipFile(new File("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3"));
-        ZipFileProcessor zipFileProcessor = new ZipFileProcessor(zipFile);
-        Zettelkasten zettelkasten = zipFileProcessor.unmarshall();
+        ZipFileProcessor zipFileProcessor = new ZipFileProcessor();
+        Zettelkasten zettelkasten = zipFileProcessor.unmarshall("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/tekom/zknFile.xml");
     }
 }

@@ -65,12 +65,6 @@
             <artifactId>jakarta.xml.bind-api</artifactId>
             <version>3.0.0</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime -->
-        <dependency>
-            <groupId>org.glassfish.jaxb</groupId>
-            <artifactId>jaxb-runtime</artifactId>
-            <version>3.0.0-M5</version>
-        </dependency>
         <!-- https://mvnreposito    ry.com/artifact/nz.sodium/sodium -->
         <dependency>
             <groupId>nz.sodium</groupId>
