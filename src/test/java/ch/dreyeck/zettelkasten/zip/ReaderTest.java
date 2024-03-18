@@ -17,7 +17,7 @@ class ReaderTest {
     void testFilterWithMatchingEntries() {
         // Prepare test data
         ObjectProperty<Zettelkasten> zettelkastenProperty = new SimpleObjectProperty<>(new Zettelkasten());
-        Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", zettelkastenProperty);
+        Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/firstzettel.zkn3", zettelkastenProperty);
 
         // Define filter predicate to match specific entries
         Predicate<ZipEntry> filter = entry -> entry.getName().equals("zknFile.xml");
@@ -33,7 +33,7 @@ class ReaderTest {
     void testFilterWithNoMatchingEntries() {
         // Prepare test data
         ObjectProperty<Zettelkasten> zettelkastenProperty = new SimpleObjectProperty<>(new Zettelkasten());
-        Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3", zettelkastenProperty);
+        Reader reader = new Reader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/firstzettel.zkn3", zettelkastenProperty);
 
         // Define filter predicate to match no entries
         Predicate<ZipEntry> filter = entry -> false; // No entries will match

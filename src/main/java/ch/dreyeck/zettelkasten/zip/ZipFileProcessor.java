@@ -5,6 +5,7 @@ import ch.dreyeck.zettelkasten.xml.Zettelkasten;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.ZipEntry;
@@ -38,6 +39,12 @@ public class ZipFileProcessor {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public Zettelkasten unmarshall() throws JAXBException, IOException {
+        JAXBContext context = JAXBContext.newInstance(Zettelkasten.class);
+        return (Zettelkasten) context.createUnmarshaller()
+                .unmarshal(new FileReader("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/zknFile.xml"));
     }
 
     public Zettelkasten getProcessedData() {

@@ -2,23 +2,23 @@
 // Diese Datei wurde mit der JavaTM Architecture for XML Binding(JAXB) Reference Implementation, v2.2.8-b130911.1802 generiert 
 // Siehe <a href="http://java.sun.com/xml/jaxb">http://java.sun.com/xml/jaxb</a> 
 // Änderungen an dieser Datei gehen bei einer Neukompilierung des Quellschemas verloren. 
-// Generiert: 2019.10.06 um 10:17:37 AM CEST 
+// Generiert: 2024.03.18 um 02:14:17 AM CET 
 //
 
 
 package ch.dreyeck.zettelkasten.xml;
 
-import jakarta.xml.bind.annotation.*;
-import jakarta.xml.bind.annotation.adapters.CollapsedStringAdapter;
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import javax.xml.bind.annotation.*;
+import javax.xml.bind.annotation.adapters.CollapsedStringAdapter;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.math.BigInteger;
 
 
 /**
  * <p>Java-Klasse für anonymous complex type.
- *
+ * 
  * <p>Das folgende Schemafragment gibt den erwarteten Content an, der in dieser Klasse enthalten ist.
- *
+ * 
  * <pre>
  * &lt;complexType>
  *   &lt;complexContent>
@@ -43,17 +43,19 @@ import java.math.BigInteger;
  *   &lt;/complexContent>
  * &lt;/complexType>
  * </pre>
+ * 
+ * 
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
-        "title",
-        "content",
-        "author",
-        "keywords",
-        "manlinks",
-        "links",
-        "misc",
-        "luhmann"
+    "title",
+    "content",
+    "author",
+    "keywords",
+    "manlinks",
+    "links",
+    "misc",
+    "luhmann"
 })
 @XmlRootElement(name = "zettel")
 public class Zettel {
@@ -94,9 +96,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der title-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getTitle() {
         return title;
@@ -104,9 +108,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der title-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setTitle(String value) {
         this.title = value;
@@ -114,9 +120,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der content-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getContent() {
         return content;
@@ -124,9 +132,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der content-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setContent(String value) {
         this.content = value;
@@ -134,9 +144,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der author-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getAuthor() {
         return author;
@@ -144,9 +156,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der author-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setAuthor(String value) {
         this.author = value;
@@ -154,9 +168,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der keywords-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getKeywords() {
         return keywords;
@@ -164,9 +180,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der keywords-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setKeywords(String value) {
         this.keywords = value;
@@ -174,9 +192,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der manlinks-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getManlinks() {
         return manlinks;
@@ -184,9 +204,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der manlinks-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setManlinks(String value) {
         this.manlinks = value;
@@ -194,9 +216,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der links-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link Links }
+     * 
+     * @return
+     *     possible object is
+     *     {@link Links }
+     *     
      */
     public Links getLinks() {
         return links;
@@ -204,9 +228,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der links-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link Links }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link Links }
+     *     
      */
     public void setLinks(Links value) {
         this.links = value;
@@ -214,9 +240,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der misc-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getMisc() {
         return misc;
@@ -224,9 +252,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der misc-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setMisc(String value) {
         this.misc = value;
@@ -234,9 +264,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der luhmann-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getLuhmann() {
         return luhmann;
@@ -244,9 +276,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der luhmann-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setLuhmann(String value) {
         this.luhmann = value;
@@ -254,9 +288,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der fromBibTex-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link BigInteger }
+     * 
+     * @return
+     *     possible object is
+     *     {@link BigInteger }
+     *     
      */
     public BigInteger getFromBibTex() {
         return fromBibTex;
@@ -264,9 +300,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der fromBibTex-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link BigInteger }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link BigInteger }
+     *     
      */
     public void setFromBibTex(BigInteger value) {
         this.fromBibTex = value;
@@ -274,9 +312,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der rating-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getRating() {
         return rating;
@@ -284,9 +324,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der rating-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setRating(String value) {
         this.rating = value;
@@ -294,9 +336,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der ratingcount-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getRatingcount() {
         return ratingcount;
@@ -304,9 +348,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der ratingcount-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setRatingcount(String value) {
         this.ratingcount = value;
@@ -314,9 +360,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der tsCreated-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link BigInteger }
+     * 
+     * @return
+     *     possible object is
+     *     {@link BigInteger }
+     *     
      */
     public BigInteger getTsCreated() {
         return tsCreated;
@@ -324,9 +372,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der tsCreated-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link BigInteger }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link BigInteger }
+     *     
      */
     public void setTsCreated(BigInteger value) {
         this.tsCreated = value;
@@ -334,9 +384,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der tsEdited-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getTsEdited() {
         return tsEdited;
@@ -344,9 +396,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der tsEdited-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setTsEdited(String value) {
         this.tsEdited = value;
@@ -354,9 +408,11 @@ public class Zettel {
 
     /**
      * Ruft den Wert der zknid-Eigenschaft ab.
-     *
-     * @return possible object is
-     * {@link String }
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
      */
     public String getZknid() {
         return zknid;
@@ -364,9 +420,11 @@ public class Zettel {
 
     /**
      * Legt den Wert der zknid-Eigenschaft fest.
-     *
-     * @param value allowed object is
-     *              {@link String }
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
      */
     public void setZknid(String value) {
         this.zknid = value;

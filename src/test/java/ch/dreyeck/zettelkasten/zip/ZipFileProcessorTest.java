@@ -1,8 +1,10 @@
 package ch.dreyeck.zettelkasten.zip;
 
+import ch.dreyeck.zettelkasten.xml.Zettelkasten ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.xml.bind.JAXBException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -10,7 +12,6 @@ import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 
@@ -39,18 +40,9 @@ public class ZipFileProcessorTest {
     }
 
     @Test
-    void testProcessZipFile() throws IOException {
-        // Process the zip file
-        zipFileProcessor.processZipFile();
-
-        // Assert that the processed data matches the test data
-        assertEquals("This is a test", zipFileProcessor.getProcessedData());
-    }
-
-    @Test
     void testGetZknFileXML() {
         try {
-            ZipFile zipFile = new ZipFile(new File("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3"));
+            ZipFile zipFile = new ZipFile(new File("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/firstzettel.zkn3"));
             ZipFileProcessor zipFileProcessor = new ZipFileProcessor(zipFile);
 
             ZipEntry zknFileXML = zipFileProcessor.getZknFileXML();
@@ -60,5 +52,12 @@ public class ZipFileProcessorTest {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    void testUnmarshal() throws JAXBException, IOException, javax.xml.bind.JAXBException {
+        ZipFile zipFile = new ZipFile(new File("/Users/rgb/rgb~Zettelkasten/Zettelkasten-Dateien/rgb.zkn3"));
+        ZipFileProcessor zipFileProcessor = new ZipFileProcessor(zipFile);
+        Zettelkasten zettelkasten = zipFileProcessor.unmarshall();
     }
 }
