@@ -10,3 +10,24 @@ ZettelkastenFX.iml
 # analysis artifacts
 ZettelkastenFX.mse
 jdt2famix-import.problems
+
+# Maven
+**/target/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+out/
+bin/
+
+# OS
+.DS_Store
+
+# Nix
+result
+.nix-*
+.direnv/
