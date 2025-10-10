@@ -1,62 +1,73 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>zk</groupId>
-    <artifactId>zettelkastenfx</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
-  </parent>
+    <parent>
+        <groupId>zk</groupId>
+        <artifactId>zettelkastenfx</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
 
-  <artifactId>zk-ui-javafx</artifactId>
-  <name>zk-ui-javafx</name>
+    <artifactId>zk-ui-javafx</artifactId>
+    <name>zk-ui-javafx</name>
 
-  <dependencies>
-    <dependency>
-      <groupId>zk</groupId>
-      <artifactId>zk-core</artifactId>
-      <version>${project.version}</version>
-    </dependency>
 
-    <dependency>
-      <groupId>org.openjfx</groupId>
-      <artifactId>javafx-controls</artifactId>
-      <version>${javafx.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.openjfx</groupId>
-      <artifactId>javafx-fxml</artifactId>
-      <version>${javafx.version}</version>
-    </dependency>
-  </dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>zk</groupId>
+            <artifactId>zk-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
-        <configuration><release>17</release></configuration>
-      </plugin>
+        <!-- ADD THIS: use the SQLite repositories -->
+        <dependency>
+            <groupId>zk</groupId>
+            <artifactId>zk-storage-sqlite</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
-      <!-- This is what 'mvn javafx:run' executes -->
-      <plugin>
-        <groupId>org.openjfx</groupId>
-        <artifactId>javafx-maven-plugin</artifactId>
-        <version>${javafx.maven.plugin.version}</version>
-        <configuration>
-          <mainClass>zk.ui.javafx.MainApp</mainClass>
-        </configuration>
-      </plugin>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+    </dependencies>
 
-      <!-- Fallback runner: 'mvn exec:java' -->
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.5.1</version>
-        <configuration>
-          <mainClass>zk.ui.javafx.MainApp</mainClass>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <release>17</release>
+                </configuration>
+            </plugin>
+
+            <!-- This is what 'mvn javafx:run' executes -->
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>${javafx.maven.plugin.version}</version>
+                <configuration>
+                    <mainClass>zk.ui.javafx.MainApp</mainClass>
+                </configuration>
+            </plugin>
+
+            <!-- Fallback runner: 'mvn exec:java' -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <mainClass>zk.ui.javafx.MainApp</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
