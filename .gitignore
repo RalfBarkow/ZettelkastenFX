@@ -6,3 +6,7 @@ ZettelkastenFX.iml
 .project
 .settings
 .vscode
+
+# analysis artifacts
+ZettelkastenFX.mse
+jdt2famix-import.problems
