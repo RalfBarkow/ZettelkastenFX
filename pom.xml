@@ -8,6 +8,7 @@
 
     <modules>
         <module>zk-core</module>
+        <module>zk-source-zkn3</module>
         <module>zk-ui-javafx</module>
         <module>zk-storage-sqlite</module>
     </modules>
