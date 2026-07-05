@@ -1,11 +1,10 @@
 package zk.core.ports;
 
-import zk.core.model.NoteDTO;
+import zk.core.importing.Zkn3ImportBatch;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.stream.Stream;
 
 public interface Zkn3SourceReader {
-    Stream<NoteDTO> readNotes(Path zkn3File) throws IOException;
+    Zkn3ImportBatch read(Path zkn3File) throws IOException;
 }
