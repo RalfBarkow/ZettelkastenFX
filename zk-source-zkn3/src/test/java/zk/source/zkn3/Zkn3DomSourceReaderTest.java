@@ -5,12 +5,15 @@ import org.junit.jupiter.api.io.TempDir;
 import zk.core.importing.Zkn3DiagnosticSeverity;
 import zk.core.importing.Zkn3ImportBatch;
 import zk.core.importing.Zkn3ImportDiagnostic;
+import zk.core.importing.Zkn3NoteRecord;
 import zk.core.ports.Zkn3SourceReader;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.OptionalInt;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -18,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class Zkn3DomSourceReaderTest {
     @TempDir
@@ -29,37 +33,227 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readReturnsInfoDiagnosticWhenZknFileHasNoZettelElements() throws IOException {
+    void readReturnsSummaryDiagnosticWhenZknFileHasNoZettelElements() throws IOException {
         Path source = createZip("valid-root.zkn3", "zknFile.xml", "<zettelkasten/>");
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
-        assertEmptyBatchWithDiagnostic(
-                batch,
-                Zkn3DiagnosticSeverity.INFO,
-                source,
-                "zettel",
-                "Found zknFile.xml root element zettelkasten with 0 zettel elements; zettel mapping not implemented yet."
-        );
+        assertNotNull(batch);
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(1, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 0);
     }
 
     @Test
-    void readReturnsInfoDiagnosticWithZettelElementCount() throws IOException {
+    void readMapsOneValidZettelToNoteRecord() throws IOException {
         Path source = createZip(
-                "two-zettel.zkn3",
+                "one-zettel.zkn3",
                 "zknFile.xml",
-                "<zettelkasten><zettel/><zettel/></zettelkasten>"
+                """
+                        <zettelkasten>
+                          <zettel zknid="42" ts_created="1700000000000" ts_edited="1700003600" rating="4">
+                            <title>First note</title>
+                            <content>Body &amp; markup [b]raw[/b]</content>
+                          </zettel>
+                        </zettelkasten>
+                        """
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
-        assertEmptyBatchWithDiagnostic(
-                batch,
-                Zkn3DiagnosticSeverity.INFO,
-                source,
-                "zettel",
-                "Found zknFile.xml root element zettelkasten with 2 zettel elements; zettel mapping not implemented yet."
+        assertEquals(1, batch.notes().size());
+        Zkn3NoteRecord note = batch.notes().get(0);
+        assertEquals("42", note.sourceId());
+        assertEquals("First note", note.title());
+        assertEquals("Body & markup [b]raw[/b]", note.body());
+        assertEquals(Instant.ofEpochMilli(1700000000000L), note.createdAt());
+        assertEquals(Instant.ofEpochSecond(1700003600L), note.modifiedAt());
+        assertEquals(OptionalInt.of(4), note.rating());
+        assertNoRelationRecords(batch);
+        assertEquals(1, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+    }
+
+    @Test
+    void readMapsTwoValidZettelElementsToTwoNoteRecords() throws IOException {
+        Path source = createZip(
+                "two-zettel.zkn3",
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                            <title>First</title>
+                            <content>First body</content>
+                          </zettel>
+                          <zettel zknid="2" ts_created="1700000001000" ts_edited="1700000200000" rating="5">
+                            <title>Second</title>
+                            <content>Second body</content>
+                          </zettel>
+                        </zettelkasten>
+                        """
         );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(2, batch.notes().size());
+        assertEquals("1", batch.notes().get(0).sourceId());
+        assertEquals(OptionalInt.empty(), batch.notes().get(0).rating());
+        assertEquals("2", batch.notes().get(1).sourceId());
+        assertEquals(OptionalInt.of(5), batch.notes().get(1).rating());
+        assertNoRelationRecords(batch);
+        assertEquals(1, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 2);
+    }
+
+    @Test
+    void readSkipsZettelWithMissingZknidAndEmitsErrorDiagnostic() throws IOException {
+        Path source = createZip(
+                "missing-zknid.zkn3",
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel ts_created="1700000000" ts_edited="1700000100" rating="1">
+                            <title>Missing ID</title>
+                            <content>Body</content>
+                          </zettel>
+                        </zettelkasten>
+                        """
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                source.toString(),
+                "zknid",
+                "Missing required zknid attribute; skipped zettel."
+        );
+        assertSummaryDiagnostic(batch, source, 0);
+    }
+
+    @Test
+    void readUsesEmptyTitleWhenTitleElementIsMissingAndEmitsWarningDiagnostic() throws IOException {
+        Path source = createZip(
+                "missing-title.zkn3",
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="99" ts_created="1700000000" ts_edited="1700000100">
+                            <content>Body</content>
+                          </zettel>
+                        </zettelkasten>
+                        """
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertEquals("", batch.notes().get(0).title());
+        assertEquals("Body", batch.notes().get(0).body());
+        assertNoRelationRecords(batch);
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.WARNING,
+                "99",
+                "title",
+                "Missing title element; using empty title."
+        );
+        assertSummaryDiagnostic(batch, source, 1);
+    }
+
+    @Test
+    void readUsesEmptyBodyWhenContentElementIsMissingAndEmitsWarningDiagnostic() throws IOException {
+        Path source = createZip(
+                "missing-content.zkn3",
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="100" ts_created="1700000000" ts_edited="1700000100">
+                            <title>Title</title>
+                          </zettel>
+                        </zettelkasten>
+                        """
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertEquals("Title", batch.notes().get(0).title());
+        assertEquals("", batch.notes().get(0).body());
+        assertNoRelationRecords(batch);
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.WARNING,
+                "100",
+                "content",
+                "Missing content element; using empty body."
+        );
+        assertSummaryDiagnostic(batch, source, 1);
+    }
+
+    @Test
+    void readUsesEmptyRatingWhenRatingIsMalformedAndEmitsWarningDiagnostic() throws IOException {
+        Path source = createZip(
+                "malformed-rating.zkn3",
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="101" ts_created="1700000000" ts_edited="1700000100" rating="bad">
+                            <title>Title</title>
+                            <content>Body</content>
+                          </zettel>
+                        </zettelkasten>
+                        """
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertEquals(OptionalInt.empty(), batch.notes().get(0).rating());
+        assertNoRelationRecords(batch);
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.WARNING,
+                "101",
+                "rating",
+                "Malformed rating value; using empty rating."
+        );
+        assertSummaryDiagnostic(batch, source, 1);
+    }
+
+    @Test
+    void readSkipsZettelWithMalformedCreatedTimestampAndEmitsErrorDiagnostic() throws IOException {
+        Path source = createZip(
+                "malformed-created.zkn3",
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="102" ts_created="bad" ts_edited="1700000100" rating="1">
+                            <title>Title</title>
+                            <content>Body</content>
+                          </zettel>
+                        </zettelkasten>
+                        """
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                "102",
+                "ts_created",
+                "Missing or malformed ts_created timestamp; skipped zettel."
+        );
+        assertSummaryDiagnostic(batch, source, 0);
     }
 
     @Test
@@ -128,6 +322,50 @@ final class Zkn3DomSourceReaderTest {
             zip.closeEntry();
         }
         return source;
+    }
+
+    private static void assertNoRelationRecords(Zkn3ImportBatch batch) {
+        assertEquals(0, batch.keywords().size());
+        assertEquals(0, batch.links().size());
+        assertEquals(0, batch.sequences().size());
+    }
+
+    private static void assertSummaryDiagnostic(Zkn3ImportBatch batch, Path source, int noteCount) {
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.INFO,
+                source.toString(),
+                "zettel",
+                "Extracted "
+                        + noteCount
+                        + " ZKN3 note records; keyword, link, manual-link, and sequence mapping not implemented yet."
+        );
+    }
+
+    private static void assertDiagnostic(
+            Zkn3ImportBatch batch,
+            Zkn3DiagnosticSeverity severity,
+            String sourceId,
+            String field,
+            String message
+    ) {
+        assertTrue(
+                batch.diagnostics().stream().anyMatch(diagnostic ->
+                        severity == diagnostic.severity()
+                                && sourceId.equals(diagnostic.sourceId())
+                                && field.equals(diagnostic.field())
+                                && message.equals(diagnostic.message())),
+                "Expected diagnostic "
+                        + severity
+                        + " "
+                        + sourceId
+                        + " "
+                        + field
+                        + " "
+                        + message
+                        + " in "
+                        + batch.diagnostics()
+        );
     }
 
     private static void assertEmptyBatchWithDiagnostic(
