@@ -47,7 +47,7 @@ final class Zkn3DomSourceReaderTest {
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 0);
-        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
+        assertKeywordFileShapeDiagnostic(batch, source, 0);
     }
 
     @Test
@@ -81,7 +81,7 @@ final class Zkn3DomSourceReaderTest {
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
-        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
+        assertKeywordFileShapeDiagnostic(batch, source, 0);
     }
 
     @Test
@@ -116,7 +116,7 @@ final class Zkn3DomSourceReaderTest {
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 2);
-        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
+        assertKeywordFileShapeDiagnostic(batch, source, 0);
     }
 
     @Test
@@ -181,6 +181,123 @@ final class Zkn3DomSourceReaderTest {
                 source.toString(),
                 "keywordFile.xml",
                 "Could not parse keywordFile.xml root element:"
+        );
+        assertImportRejectedBatchDiagnostic(batch, source);
+    }
+
+    @Test
+    void readValidatesKeywordFileEntryShapeWithoutMappingKeywords() throws IOException {
+        Path source = createZip(
+                "keyword-file-entries.zkn3",
+                validZknFileEntry(),
+                zipEntry(
+                        "keywordFile.xml",
+                        """
+                                <keywords>
+                                  <entry>systems</entry>
+                                  <entry>phenomenology</entry>
+                                </keywords>
+                                """
+                )
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 2);
+    }
+
+    @Test
+    void readAllowsKeywordFileEntryFrequencyAttributeWithoutMappingIt() throws IOException {
+        Path source = createZip(
+                "keyword-file-frequency.zkn3",
+                validZknFileEntry(),
+                zipEntry("keywordFile.xml", "<keywords><entry f=\"2\">systems</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 1);
+    }
+
+    @Test
+    void readIgnoresNonElementKeywordFileChildren() throws IOException {
+        Path source = createZip(
+                "keyword-file-non-elements.zkn3",
+                validZknFileEntry(),
+                zipEntry(
+                        "keywordFile.xml",
+                        """
+                                <keywords>
+                                  <!-- a legacy export may include comments -->
+
+                                  <entry>systems</entry>
+                                  <entry>theory</entry>
+                                </keywords>
+                                """
+                )
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 2);
+    }
+
+    @Test
+    void readRejectsBatchWhenKeywordFileRootIsWrong() throws IOException {
+        Path source = createZip(
+                "wrong-keyword-root.zkn3",
+                validZknFileEntry(),
+                zipEntry("keywordFile.xml", "<notKeywords/>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertNotNull(batch);
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                source.toString(),
+                "keywordFile.xml",
+                "Expected keywordFile.xml root element keywords but found notKeywords."
+        );
+        assertImportRejectedBatchDiagnostic(batch, source);
+    }
+
+    @Test
+    void readRejectsBatchWhenKeywordFileHasUnexpectedElementChild() throws IOException {
+        Path source = createZip(
+                "unexpected-keyword-child.zkn3",
+                validZknFileEntry(),
+                zipEntry("keywordFile.xml", "<keywords><notEntry>foo</notEntry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertNotNull(batch);
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                source.toString(),
+                "keywordFile.xml",
+                "Expected keywordFile.xml child element entry but found notEntry."
         );
         assertImportRejectedBatchDiagnostic(batch, source);
     }
@@ -253,7 +370,7 @@ final class Zkn3DomSourceReaderTest {
                 "Missing title element; using empty title."
         );
         assertSummaryDiagnostic(batch, source, 1);
-        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
+        assertKeywordFileShapeDiagnostic(batch, source, 0);
     }
 
     @Test
@@ -287,7 +404,7 @@ final class Zkn3DomSourceReaderTest {
                 "Missing content element; using empty body."
         );
         assertSummaryDiagnostic(batch, source, 1);
-        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
+        assertKeywordFileShapeDiagnostic(batch, source, 0);
     }
 
     @Test
@@ -321,7 +438,7 @@ final class Zkn3DomSourceReaderTest {
                 "Malformed rating value; using empty rating."
         );
         assertSummaryDiagnostic(batch, source, 1);
-        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
+        assertKeywordFileShapeDiagnostic(batch, source, 0);
     }
 
     @Test
@@ -513,6 +630,20 @@ final class Zkn3DomSourceReaderTest {
         return new ZipFixtureEntry(name, content);
     }
 
+    private static ZipFixtureEntry validZknFileEntry() {
+        return zipEntry(
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                            <title>First</title>
+                            <content>First body</content>
+                          </zettel>
+                        </zettelkasten>
+                        """
+        );
+    }
+
     private static void assertNoRelationRecords(Zkn3ImportBatch batch) {
         assertEquals(0, batch.keywords().size());
         assertEquals(0, batch.links().size());
@@ -531,15 +662,15 @@ final class Zkn3DomSourceReaderTest {
         );
     }
 
-    private static void assertKeywordFileProbeDiagnostic(Zkn3ImportBatch batch, Path source, String rootName) {
+    private static void assertKeywordFileShapeDiagnostic(Zkn3ImportBatch batch, Path source, int entryCount) {
         assertDiagnostic(
                 batch,
                 Zkn3DiagnosticSeverity.INFO,
                 source.toString(),
                 "keywordFile.xml",
-                "Found parseable keywordFile.xml root element "
-                        + rootName
-                        + "; keyword mapping not implemented yet."
+                "Validated keywordFile.xml root keywords with "
+                        + entryCount
+                        + " entry elements; keyword mapping not implemented yet."
         );
     }
 

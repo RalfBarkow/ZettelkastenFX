@@ -34,6 +34,8 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static final String ZKN_FILE_ENTRY = "zknFile.xml";
     private static final String KEYWORD_FILE_ENTRY = "keywordFile.xml";
     private static final String EXPECTED_ROOT = "zettelkasten";
+    private static final String EXPECTED_KEYWORD_ROOT = "keywords";
+    private static final String KEYWORD_ENTRY_ELEMENT = "entry";
     private static final String ZETTEL_ELEMENT = "zettel";
     private static final String INCOMPLETE_BATCH_MESSAGE =
             "ZKN3 note batch is incomplete and rejected; no note records extracted.";
@@ -112,10 +114,54 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             Element root = document.getDocumentElement();
             String rootName = root == null ? "" : root.getTagName();
 
-            return noteBatchWithKeywordFileRootDiagnostic(zkn3File, noteBatch, rootName);
+            if (!EXPECTED_KEYWORD_ROOT.equals(rootName)) {
+                return rejectedBatchWithKeywordFileShapeDiagnostic(
+                        zkn3File,
+                        "Expected keywordFile.xml root element keywords but found " + rootName + "."
+                );
+            }
+
+            Optional<String> unexpectedElement = firstUnexpectedKeywordChildElement(root);
+            if (unexpectedElement.isPresent()) {
+                return rejectedBatchWithKeywordFileShapeDiagnostic(
+                        zkn3File,
+                        "Expected keywordFile.xml child element entry but found " + unexpectedElement.get() + "."
+                );
+            }
+
+            return noteBatchWithKeywordFileShapeDiagnostic(zkn3File, noteBatch, countKeywordEntries(root));
         } catch (ParserConfigurationException | SAXException e) {
             return rejectedBatchWithMalformedKeywordFileDiagnostic(zkn3File, e);
         }
+    }
+
+    private static Optional<String> firstUnexpectedKeywordChildElement(Element root) {
+        NodeList children = root.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+                if (!KEYWORD_ENTRY_ELEMENT.equals(element.getTagName())) {
+                    return Optional.of(element.getTagName());
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static int countKeywordEntries(Element root) {
+        int count = 0;
+        NodeList children = root.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+                if (KEYWORD_ENTRY_ELEMENT.equals(element.getTagName())) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     private static boolean hasErrorDiagnostic(Zkn3ImportBatch batch) {
@@ -170,19 +216,42 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         );
     }
 
-    private static Zkn3ImportBatch noteBatchWithKeywordFileRootDiagnostic(
+    private static Zkn3ImportBatch rejectedBatchWithKeywordFileShapeDiagnostic(Path zkn3File, String message) {
+        return new Zkn3ImportBatch(
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(
+                        new Zkn3ImportDiagnostic(
+                                Zkn3DiagnosticSeverity.ERROR,
+                                zkn3File.toString(),
+                                KEYWORD_FILE_ENTRY,
+                                message
+                        ),
+                        new Zkn3ImportDiagnostic(
+                                Zkn3DiagnosticSeverity.ERROR,
+                                zkn3File.toString(),
+                                "import",
+                                INCOMPLETE_IMPORT_BATCH_MESSAGE
+                        )
+                )
+        );
+    }
+
+    private static Zkn3ImportBatch noteBatchWithKeywordFileShapeDiagnostic(
             Path zkn3File,
             Zkn3ImportBatch noteBatch,
-            String rootName
+            int entryCount
     ) {
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>(noteBatch.diagnostics());
         diagnostics.add(new Zkn3ImportDiagnostic(
                 Zkn3DiagnosticSeverity.INFO,
                 zkn3File.toString(),
                 KEYWORD_FILE_ENTRY,
-                "Found parseable keywordFile.xml root element "
-                        + rootName
-                        + "; keyword mapping not implemented yet."
+                "Validated keywordFile.xml root keywords with "
+                        + entryCount
+                        + " entry elements; keyword mapping not implemented yet."
         ));
 
         return new Zkn3ImportBatch(
