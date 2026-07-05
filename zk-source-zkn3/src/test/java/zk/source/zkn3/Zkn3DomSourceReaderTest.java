@@ -107,12 +107,16 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readSkipsZettelWithMissingZknidAndEmitsErrorDiagnostic() throws IOException {
+    void readRejectsBatchWhenOneZettelIsMissingZknid() throws IOException {
         Path source = createZip(
                 "missing-zknid.zkn3",
                 "zknFile.xml",
                 """
                         <zettelkasten>
+                          <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
+                            <title>Valid</title>
+                            <content>Valid body</content>
+                          </zettel>
                           <zettel ts_created="1700000000" ts_edited="1700000100" rating="1">
                             <title>Missing ID</title>
                             <content>Body</content>
@@ -131,9 +135,9 @@ final class Zkn3DomSourceReaderTest {
                 Zkn3DiagnosticSeverity.ERROR,
                 source.toString(),
                 "zknid",
-                "Missing required zknid attribute; skipped zettel."
+                "Missing required zknid attribute."
         );
-        assertSummaryDiagnostic(batch, source, 0);
+        assertRejectedBatchDiagnostic(batch, source);
     }
 
     @Test
@@ -227,12 +231,16 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readSkipsZettelWithMalformedCreatedTimestampAndEmitsErrorDiagnostic() throws IOException {
+    void readRejectsBatchWhenOneZettelHasMalformedCreatedTimestamp() throws IOException {
         Path source = createZip(
                 "malformed-created.zkn3",
                 "zknFile.xml",
                 """
                         <zettelkasten>
+                          <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
+                            <title>Valid</title>
+                            <content>Valid body</content>
+                          </zettel>
                           <zettel zknid="102" ts_created="bad" ts_edited="1700000100" rating="1">
                             <title>Title</title>
                             <content>Body</content>
@@ -251,9 +259,77 @@ final class Zkn3DomSourceReaderTest {
                 Zkn3DiagnosticSeverity.ERROR,
                 "102",
                 "ts_created",
-                "Missing or malformed ts_created timestamp; skipped zettel."
+                "Missing or malformed ts_created timestamp."
         );
-        assertSummaryDiagnostic(batch, source, 0);
+        assertRejectedBatchDiagnostic(batch, source);
+    }
+
+    @Test
+    void readRejectsBatchWhenOneZettelIsMissingEditedTimestamp() throws IOException {
+        Path source = createZip(
+                "missing-edited.zkn3",
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
+                            <title>Valid</title>
+                            <content>Valid body</content>
+                          </zettel>
+                          <zettel zknid="103" ts_created="1700000000" rating="1">
+                            <title>Title</title>
+                            <content>Body</content>
+                          </zettel>
+                        </zettelkasten>
+                        """
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                "103",
+                "ts_edited",
+                "Missing or malformed ts_edited timestamp."
+        );
+        assertRejectedBatchDiagnostic(batch, source);
+    }
+
+    @Test
+    void readRejectsBatchWhenOneZettelHasMalformedEditedTimestamp() throws IOException {
+        Path source = createZip(
+                "malformed-edited.zkn3",
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
+                            <title>Valid</title>
+                            <content>Valid body</content>
+                          </zettel>
+                          <zettel zknid="104" ts_created="1700000000" ts_edited="bad" rating="1">
+                            <title>Title</title>
+                            <content>Body</content>
+                          </zettel>
+                        </zettelkasten>
+                        """
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                "104",
+                "ts_edited",
+                "Missing or malformed ts_edited timestamp."
+        );
+        assertRejectedBatchDiagnostic(batch, source);
     }
 
     @Test
@@ -339,6 +415,16 @@ final class Zkn3DomSourceReaderTest {
                 "Extracted "
                         + noteCount
                         + " ZKN3 note records; keyword, link, manual-link, and sequence mapping not implemented yet."
+        );
+    }
+
+    private static void assertRejectedBatchDiagnostic(Zkn3ImportBatch batch, Path source) {
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                source.toString(),
+                "zettel",
+                "ZKN3 note batch is incomplete and rejected; no note records extracted."
         );
     }
 

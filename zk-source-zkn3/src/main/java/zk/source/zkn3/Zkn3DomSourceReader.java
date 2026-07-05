@@ -34,6 +34,8 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static final String ZKN_FILE_ENTRY = "zknFile.xml";
     private static final String EXPECTED_ROOT = "zettelkasten";
     private static final String ZETTEL_ELEMENT = "zettel";
+    private static final String INCOMPLETE_BATCH_MESSAGE =
+            "ZKN3 note batch is incomplete and rejected; no note records extracted.";
 
     @Override
     public Zkn3ImportBatch read(Path zkn3File) throws IOException {
@@ -87,6 +89,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static Zkn3ImportBatch extractNoteRecords(Path zkn3File, Element root) {
         List<Zkn3NoteRecord> notes = new ArrayList<>();
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>();
+        boolean incompleteBatch = false;
 
         NodeList children = root.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
@@ -94,9 +97,24 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 Element element = (Element) node;
                 if (ZETTEL_ELEMENT.equals(element.getTagName())) {
-                    extractNoteRecord(zkn3File, element, notes, diagnostics);
+                    NoteExtractionResult result = extractNoteRecord(zkn3File, element, diagnostics);
+                    if (result.record().isPresent()) {
+                        notes.add(result.record().get());
+                    }
+                    incompleteBatch = incompleteBatch || result.incompleteBatch();
                 }
             }
+        }
+
+        if (incompleteBatch) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    zkn3File.toString(),
+                    ZETTEL_ELEMENT,
+                    INCOMPLETE_BATCH_MESSAGE
+            ));
+
+            return new Zkn3ImportBatch(List.of(), List.of(), List.of(), List.of(), diagnostics);
         }
 
         diagnostics.add(new Zkn3ImportDiagnostic(
@@ -111,10 +129,9 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         return new Zkn3ImportBatch(notes, List.of(), List.of(), List.of(), diagnostics);
     }
 
-    private static void extractNoteRecord(
+    private static NoteExtractionResult extractNoteRecord(
             Path zkn3File,
             Element zettel,
-            List<Zkn3NoteRecord> notes,
             List<Zkn3ImportDiagnostic> diagnostics
     ) {
         String sourceId = zettel.getAttribute("zknid").trim();
@@ -123,9 +140,9 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                     Zkn3DiagnosticSeverity.ERROR,
                     zkn3File.toString(),
                     "zknid",
-                    "Missing required zknid attribute; skipped zettel."
+                    "Missing required zknid attribute."
             ));
-            return;
+            return new NoteExtractionResult(Optional.empty(), true);
         }
 
         Optional<Instant> createdAt = parseTimestamp(zettel.getAttribute("ts_created"));
@@ -134,20 +151,20 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                     Zkn3DiagnosticSeverity.ERROR,
                     sourceId,
                     "ts_created",
-                    "Missing or malformed ts_created timestamp; skipped zettel."
+                    "Missing or malformed ts_created timestamp."
             ));
-            return;
+            return new NoteExtractionResult(Optional.empty(), true);
         }
 
         Optional<Instant> modifiedAt = parseTimestamp(zettel.getAttribute("ts_edited"));
         if (modifiedAt.isEmpty()) {
             diagnostics.add(new Zkn3ImportDiagnostic(
-                    Zkn3DiagnosticSeverity.WARNING,
+                    Zkn3DiagnosticSeverity.ERROR,
                     sourceId,
                     "ts_edited",
-                    "Missing or malformed ts_edited timestamp; skipped zettel."
+                    "Missing or malformed ts_edited timestamp."
             ));
-            return;
+            return new NoteExtractionResult(Optional.empty(), true);
         }
 
         Optional<String> title = directChildText(zettel, "title");
@@ -180,14 +197,15 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             ));
         }
 
-        notes.add(new Zkn3NoteRecord(
+        Zkn3NoteRecord record = new Zkn3NoteRecord(
                 sourceId,
                 title.orElse(""),
                 content.orElse(""),
                 createdAt.get(),
                 modifiedAt.get(),
                 rating.value()
-        ));
+        );
+        return new NoteExtractionResult(Optional.of(record), false);
     }
 
     private static Optional<String> directChildText(Element parent, String childName) {
@@ -303,5 +321,8 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     }
 
     private record RatingParseResult(OptionalInt value, boolean malformed) {
+    }
+
+    private record NoteExtractionResult(Optional<Zkn3NoteRecord> record, boolean incompleteBatch) {
     }
 }
