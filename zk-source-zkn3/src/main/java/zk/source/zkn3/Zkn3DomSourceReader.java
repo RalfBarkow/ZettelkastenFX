@@ -25,6 +25,7 @@ import javax.xml.parsers.ParserConfigurationException;
 public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static final String ZKN_FILE_ENTRY = "zknFile.xml";
     private static final String EXPECTED_ROOT = "zettelkasten";
+    private static final String ZETTEL_ELEMENT = "zettel";
 
     @Override
     public Zkn3ImportBatch read(Path zkn3File) throws IOException {
@@ -57,10 +58,14 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             String rootName = root == null ? "" : root.getTagName();
 
             if (EXPECTED_ROOT.equals(rootName)) {
+                int zettelCount = root.getElementsByTagName(ZETTEL_ELEMENT).getLength();
                 return emptyBatchWithDiagnostic(
                         zkn3File,
                         Zkn3DiagnosticSeverity.INFO,
-                        "Found zknFile.xml root element zettelkasten; zettel mapping not implemented yet."
+                        ZETTEL_ELEMENT,
+                        "Found zknFile.xml root element zettelkasten with "
+                                + zettelCount
+                                + " zettel elements; zettel mapping not implemented yet."
                 );
             }
 
@@ -73,6 +78,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             return emptyBatchWithDiagnostic(
                     zkn3File,
                     Zkn3DiagnosticSeverity.ERROR,
+                    ZKN_FILE_ENTRY,
                     "Could not parse zknFile.xml root element: " + e.getMessage()
             );
         }
@@ -122,6 +128,15 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             Zkn3DiagnosticSeverity severity,
             String message
     ) {
+        return emptyBatchWithDiagnostic(zkn3File, severity, ZKN_FILE_ENTRY, message);
+    }
+
+    private static Zkn3ImportBatch emptyBatchWithDiagnostic(
+            Path zkn3File,
+            Zkn3DiagnosticSeverity severity,
+            String field,
+            String message
+    ) {
         return new Zkn3ImportBatch(
                 List.of(),
                 List.of(),
@@ -130,7 +145,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 List.of(new Zkn3ImportDiagnostic(
                         severity,
                         zkn3File.toString(),
-                        ZKN_FILE_ENTRY,
+                        field,
                         message
                 ))
         );

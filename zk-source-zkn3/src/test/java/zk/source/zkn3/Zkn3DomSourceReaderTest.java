@@ -29,7 +29,7 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readReturnsInfoDiagnosticWhenZknFileRootIsValid() throws IOException {
+    void readReturnsInfoDiagnosticWhenZknFileHasNoZettelElements() throws IOException {
         Path source = createZip("valid-root.zkn3", "zknFile.xml", "<zettelkasten/>");
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -38,7 +38,27 @@ final class Zkn3DomSourceReaderTest {
                 batch,
                 Zkn3DiagnosticSeverity.INFO,
                 source,
-                "Found zknFile.xml root element zettelkasten; zettel mapping not implemented yet."
+                "zettel",
+                "Found zknFile.xml root element zettelkasten with 0 zettel elements; zettel mapping not implemented yet."
+        );
+    }
+
+    @Test
+    void readReturnsInfoDiagnosticWithZettelElementCount() throws IOException {
+        Path source = createZip(
+                "two-zettel.zkn3",
+                "zknFile.xml",
+                "<zettelkasten><zettel/><zettel/></zettelkasten>"
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEmptyBatchWithDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.INFO,
+                source,
+                "zettel",
+                "Found zknFile.xml root element zettelkasten with 2 zettel elements; zettel mapping not implemented yet."
         );
     }
 
@@ -52,6 +72,7 @@ final class Zkn3DomSourceReaderTest {
                 batch,
                 Zkn3DiagnosticSeverity.ERROR,
                 source,
+                "zknFile.xml",
                 "Expected root element zettelkasten but found notzettelkasten."
         );
     }
@@ -66,6 +87,7 @@ final class Zkn3DomSourceReaderTest {
                 batch,
                 Zkn3DiagnosticSeverity.ERROR,
                 source,
+                "zknFile.xml",
                 "Missing required zknFile.xml entry in ZKN3 container."
         );
     }
@@ -80,6 +102,7 @@ final class Zkn3DomSourceReaderTest {
                 batch,
                 Zkn3DiagnosticSeverity.ERROR,
                 source,
+                "zknFile.xml",
                 "Could not parse zknFile.xml root element:"
         );
     }
@@ -111,6 +134,7 @@ final class Zkn3DomSourceReaderTest {
             Zkn3ImportBatch batch,
             Zkn3DiagnosticSeverity severity,
             Path source,
+            String field,
             String message
     ) {
         assertNotNull(batch);
@@ -123,7 +147,7 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportDiagnostic diagnostic = batch.diagnostics().get(0);
         assertEquals(severity, diagnostic.severity());
         assertEquals(source.toString(), diagnostic.sourceId());
-        assertEquals("zknFile.xml", diagnostic.field());
+        assertEquals(field, diagnostic.field());
         assertEquals(message, diagnostic.message());
     }
 
@@ -131,6 +155,7 @@ final class Zkn3DomSourceReaderTest {
             Zkn3ImportBatch batch,
             Zkn3DiagnosticSeverity severity,
             Path source,
+            String field,
             String messagePrefix
     ) {
         assertNotNull(batch);
@@ -143,7 +168,7 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportDiagnostic diagnostic = batch.diagnostics().get(0);
         assertEquals(severity, diagnostic.severity());
         assertEquals(source.toString(), diagnostic.sourceId());
-        assertEquals("zknFile.xml", diagnostic.field());
+        assertEquals(field, diagnostic.field());
         assertEquals(messagePrefix, diagnostic.message().substring(0, messagePrefix.length()));
     }
 }
