@@ -2,10 +2,12 @@
  :kind :mapping-design-only
  :scope AC-06
  :task
- (!design-zkn3-keyword-extraction
+ (!repair-zkn3-keyword-extraction-design-for-indexed-keyword-file
   :module zk-source-zkn3
+  :previous-design ca96bdfb1c34b6fb94733250ac72199ae14f3fdd
   :mode :mapping-design-only
   :source-field keywords
+  :keyword-index-file "keywordFile.xml"
   :target-record Zkn3KeywordRecord
   :requires-complete-note-batch-policy t
   :must-not-implement-keyword-extraction-yet t)
@@ -19,7 +21,9 @@
  ((:commit "b0ffe4f618fa954679ffd3ca899422318edd4278"
    :subject "feat(zettelkasten): extract zkn3 note records")
   (:commit "c02fe4dc4cb0f88cd3c560cea327b9bb0bdb160e"
-   :subject "fix(zettelkasten): reject incomplete zkn3 note batches"))
+   :subject "fix(zettelkasten): reject incomplete zkn3 note batches")
+  (:commit "ca96bdfb1c34b6fb94733250ac72199ae14f3fdd"
+   :subject "docs(zettelkasten): design zkn3 keyword extraction"))
 
  :requires
  (:complete-note-batch-policy
@@ -33,6 +37,17 @@
  (:class zk.core.importing.Zkn3KeywordRecord
   :fields ((noteSourceId String)
            (keyword String)))
+
+ :corrected-source-model
+ (:zknFile.xml
+  (:contains zettel
+   :zettel-field keywords
+   :field-meaning "comma-separated keyword index references")
+
+  :keywordFile.xml
+  (:contains keyword-entries
+   :indexing "legacy appears to use 1-based positions"
+   :entry-text "keyword value"))
 
  :mapping-scope
  (:source-container zknFile.xml
@@ -62,6 +77,12 @@
   (Constants
    :file "/Users/rgb/workspace/Zettelkasten/src/main/java/de/danielluedecke/zettelkasten/util/Constants.java"
    :finding "keywordFile.xml is the legacy keyword dictionary member.")
+  (ObjectFactory
+   :file "/Users/rgb/workspace/Zettelkasten/src/main/java/ch/dreyeck/zettelkasten/xml/ObjectFactory.java"
+   :finding "Generated JAXB factory declares keywords as a string element, not a nested keyword-value collection.")
+  (ZipFileProcessor
+   :file "/Users/rgb/workspace/Zettelkasten/src/main/java/ch/dreyeck/zettelkasten/zip/ZipFileProcessor.java"
+   :finding "Legacy probe evidence currently locates zknFile.xml; keywordFile.xml probing must be added deliberately in a later slice.")
   (Zettelkasten
    :file "/Users/rgb/workspace/Zettelkasten/src/main/java/ch/dreyeck/zettelkasten/xml/Zettelkasten.java"
    :finding "Generated JAXB root has zettel children under zettelkasten.")
@@ -73,6 +94,15 @@
  ((zettel.zknid -> Zkn3KeywordRecord.noteSourceId)
   (zettel.keywords.index-token -> keywordFile.xml.entry[index-token].text)
   (keywordFile.xml.entry.text -> Zkn3KeywordRecord.keyword))
+
+ :corrected-field-mapping
+ ((zettel.zknid -> Zkn3KeywordRecord.noteSourceId)
+  (zettel.keywords.index-token -> :keyword-index-reference)
+  (keywordFile.xml.entry[index].text -> Zkn3KeywordRecord.keyword))
+
+ :required-archive-members-for-keyword-extraction
+ ("zknFile.xml"
+  "keywordFile.xml")
 
  :keyword-tokenization-policy
  (:source-field keywords
@@ -101,15 +131,15 @@
   :index-token
   (:parse-as positive-integer
    :index-base "legacy accessors treat persisted positions as 1-based"
-   :blank-token "drop only after emitting INFO or WARNING according to implementation diagnostics policy")
+   :blank-token "treat blank token inside a nonblank keywords field as malformed and reject the complete batch")
 
   :dictionary-entry
   (:missing-index
    (:severity ERROR
     :effect "reject keyword extraction for the whole batch; do not create a partial keyword graph"))
   (:blank-keyword-text
-   (:severity WARNING
-    :effect "drop token only if exact token is identifiable and diagnostics preserve the loss; otherwise reject keyword extraction for the whole batch"))
+   (:severity ERROR
+    :effect "reject complete batch if referenced by any note"))
   (:duplicate-keyword-for-same-note
    (:severity INFO
     :effect "deduplicate within note after index resolution and trimming"))
@@ -118,29 +148,33 @@
     :effect "deduplicate exact repeated index token for the same note")))
 
  :keyword-completeness-policy
- (:missing-keywords-field
-  (:severity INFO
-   :effect "note has no keywords; batch remains valid only if note batch is already complete")
+ (:missing-keywordFile.xml
+  (:severity ERROR
+   :effect "reject keyword extraction and reject complete import batch once keywords are in scope")
+
+  :malformed-keyword-index-token
+  (:severity ERROR
+   :effect "reject complete batch; do not silently drop token")
+
+  :keyword-index-out-of-range
+  (:severity ERROR
+   :effect "reject complete batch; do not create partial keyword graph")
 
   :blank-keywords-field
   (:severity INFO
-   :effect "note has no keywords; batch remains valid")
+   :effect "note has no keyword references; batch remains valid")
 
-  :malformed-keyword-token
-  (:severity ERROR
-   :effect "reject keyword extraction for the entire batch; do not import a partial keyword graph")
+  :duplicate-keyword-reference-for-same-note
+  (:severity INFO
+   :effect "deduplicate exact same resolved keyword for same note")
 
-  :keyword-index-without-dictionary-entry
+  :blank-keywordFile-entry
   (:severity ERROR
-   :effect "reject keyword extraction for the entire batch")
+   :effect "reject complete batch if referenced by any note")
 
   :keyword-for-invalid-note
   (:severity ERROR
-   :effect "impossible after complete-note-batch policy; reject entire batch if encountered")
-
-  :duplicate-keyword-for-same-note
-  (:severity INFO
-   :effect "deduplicate within note if exact duplicate after trimming and dictionary resolution"))
+   :effect "impossible after complete-note-batch policy; reject entire batch if encountered"))
 
  :batch-interaction-policy
  (:depends-on-complete-notes t
@@ -164,6 +198,16 @@
   (:copy-XMLViewer-architecture
    :reason "XMLViewer couples parser concerns to Swing rendering"))
 
+ :rejected-assumptions
+ ((:keywords-field-contains-literal-keyword-values
+   :reason "legacy evidence indicates zettel keywords are comma-separated index references into keywordFile.xml")
+
+  (:silently-drop-unresolvable-keyword-index
+   :reason "would create incomplete graph import")
+
+  (:implement-keywords-from-zknFile-only
+   :reason "keyword values require keywordFile.xml resolution"))
+
  :diagnostics
  ((:missing-keywords-field
    :severity INFO
@@ -181,6 +225,14 @@
    :severity ERROR
    :field keywordFile.xml
    :effect "reject whole import batch when any nonblank keywords field requires dictionary resolution")
+  (:keyword-index-out-of-range
+   :severity ERROR
+   :field keywordFile.xml
+   :effect "reject whole import batch")
+  (:blank-keywordFile-entry
+   :severity ERROR
+   :field keywordFile.xml
+   :effect "reject whole import batch if referenced by any note")
   (:missing-dictionary-entry
    :severity ERROR
    :field keywordFile.xml
@@ -205,6 +257,7 @@
   :must-not-change-Zkn3SourceReader t
   :must-not-change-import-record-classes t
   :must-not-add-jaxb t
+  :must-not-add-zip-probing-for-keywordFile.xml t
   :must-not-add-sqlite-import-logic t
   :must-not-touch-ui t
   :must-not-edit-FedWikiPane t
@@ -220,12 +273,24 @@
   (:criterion "The implementation does not map links, manlinks, luhmann sequences, SQLite writes, or UI behavior.")
   (:criterion "Tests use temporary ZIP/XML fixtures and do not read the authoritative rgb.zkn3 file."))
 
- :future-implementation-task
+ :next-executable-probe-before-implementation
+ (!implement-zkn3-keyword-file-entry-probe
+  :module zk-source-zkn3
+  :class zk.source.zkn3.Zkn3DomSourceReader
+  :mode :probe-only
+  :entry "keywordFile.xml"
+  :requires-complete-note-batch-policy t
+  :must-not-map-keywords-yet t
+  :must-not-write-to-sqlite t
+  :must-not-touch-ui t)
+
+ :later-implementation-task
  (!implement-zkn3-keyword-extraction
   :module zk-source-zkn3
   :class zk.source.zkn3.Zkn3DomSourceReader
   :mode :keyword-records-only
   :source-field keywords
+  :keyword-index-file "keywordFile.xml"
   :target-record Zkn3KeywordRecord
   :requires-complete-note-batch-policy t
   :must-not-map-links-manlinks-or-sequences-yet t
