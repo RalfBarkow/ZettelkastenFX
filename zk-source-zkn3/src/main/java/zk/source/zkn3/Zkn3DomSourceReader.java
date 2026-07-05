@@ -81,7 +81,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                     return rejectedBatchWithMissingKeywordFileDiagnostic(zkn3File);
                 }
 
-                return noteBatchWithKeywordFileProbeDiagnostic(zkn3File, noteBatch);
+                return probeKeywordFileRoot(zkn3File, zipFile, keywordFile, noteBatch);
             }
 
             return emptyBatchWithDiagnostic(
@@ -96,6 +96,25 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                     ZKN_FILE_ENTRY,
                     "Could not parse zknFile.xml root element: " + e.getMessage()
             );
+        }
+    }
+
+    private static Zkn3ImportBatch probeKeywordFileRoot(
+            Path zkn3File,
+            ZipFile zipFile,
+            ZipEntry keywordFile,
+            Zkn3ImportBatch noteBatch
+    ) throws IOException {
+        try (InputStream inputStream = zipFile.getInputStream(keywordFile)) {
+            DocumentBuilder documentBuilder = newSecureDocumentBuilderFactory().newDocumentBuilder();
+            documentBuilder.setErrorHandler(new ThrowingErrorHandler());
+            Document document = documentBuilder.parse(inputStream);
+            Element root = document.getDocumentElement();
+            String rootName = root == null ? "" : root.getTagName();
+
+            return noteBatchWithKeywordFileRootDiagnostic(zkn3File, noteBatch, rootName);
+        } catch (ParserConfigurationException | SAXException e) {
+            return rejectedBatchWithMalformedKeywordFileDiagnostic(zkn3File, e);
         }
     }
 
@@ -128,16 +147,42 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         );
     }
 
-    private static Zkn3ImportBatch noteBatchWithKeywordFileProbeDiagnostic(
+    private static Zkn3ImportBatch rejectedBatchWithMalformedKeywordFileDiagnostic(Path zkn3File, Exception exception) {
+        return new Zkn3ImportBatch(
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(
+                        new Zkn3ImportDiagnostic(
+                                Zkn3DiagnosticSeverity.ERROR,
+                                zkn3File.toString(),
+                                KEYWORD_FILE_ENTRY,
+                                "Could not parse keywordFile.xml root element: " + exception.getMessage()
+                        ),
+                        new Zkn3ImportDiagnostic(
+                                Zkn3DiagnosticSeverity.ERROR,
+                                zkn3File.toString(),
+                                "import",
+                                INCOMPLETE_IMPORT_BATCH_MESSAGE
+                        )
+                )
+        );
+    }
+
+    private static Zkn3ImportBatch noteBatchWithKeywordFileRootDiagnostic(
             Path zkn3File,
-            Zkn3ImportBatch noteBatch
+            Zkn3ImportBatch noteBatch,
+            String rootName
     ) {
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>(noteBatch.diagnostics());
         diagnostics.add(new Zkn3ImportDiagnostic(
                 Zkn3DiagnosticSeverity.INFO,
                 zkn3File.toString(),
                 KEYWORD_FILE_ENTRY,
-                "Found keywordFile.xml; keyword mapping not implemented yet."
+                "Found parseable keywordFile.xml root element "
+                        + rootName
+                        + "; keyword mapping not implemented yet."
         ));
 
         return new Zkn3ImportBatch(

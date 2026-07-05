@@ -37,7 +37,7 @@ final class Zkn3DomSourceReaderTest {
         Path source = createZip(
                 "valid-root.zkn3",
                 zipEntry("zknFile.xml", "<zettelkasten/>"),
-                zipEntry("keywordFile.xml", "")
+                zipEntry("keywordFile.xml", "<keywords/>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -47,7 +47,7 @@ final class Zkn3DomSourceReaderTest {
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 0);
-        assertKeywordFileProbeDiagnostic(batch, source);
+        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
     }
 
     @Test
@@ -65,7 +65,7 @@ final class Zkn3DomSourceReaderTest {
                                 </zettelkasten>
                                 """
                 ),
-                zipEntry("keywordFile.xml", "")
+                zipEntry("keywordFile.xml", "<keywords/>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -81,7 +81,7 @@ final class Zkn3DomSourceReaderTest {
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
-        assertKeywordFileProbeDiagnostic(batch, source);
+        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
     }
 
     @Test
@@ -103,7 +103,7 @@ final class Zkn3DomSourceReaderTest {
                                 </zettelkasten>
                                 """
                 ),
-                zipEntry("keywordFile.xml", "")
+                zipEntry("keywordFile.xml", "<keywords/>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -116,7 +116,7 @@ final class Zkn3DomSourceReaderTest {
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 2);
-        assertKeywordFileProbeDiagnostic(batch, source);
+        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
     }
 
     @Test
@@ -152,6 +152,40 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
+    void readRejectsBatchWhenKeywordFileXmlIsMalformed() throws IOException {
+        Path source = createZip(
+                "malformed-keyword-file.zkn3",
+                zipEntry(
+                        "zknFile.xml",
+                        """
+                                <zettelkasten>
+                                  <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                                    <title>First</title>
+                                    <content>First body</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "<keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertNotNull(batch);
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnosticPrefix(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                source.toString(),
+                "keywordFile.xml",
+                "Could not parse keywordFile.xml root element:"
+        );
+        assertImportRejectedBatchDiagnostic(batch, source);
+    }
+
+    @Test
     void readRejectsBatchWhenOneZettelIsMissingZknid() throws IOException {
         Path source = createZip(
                 "missing-zknid.zkn3",
@@ -170,7 +204,7 @@ final class Zkn3DomSourceReaderTest {
                                 </zettelkasten>
                                 """
                 ),
-                zipEntry("keywordFile.xml", "")
+                zipEntry("keywordFile.xml", "<keywords/>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -202,7 +236,7 @@ final class Zkn3DomSourceReaderTest {
                                 </zettelkasten>
                                 """
                 ),
-                zipEntry("keywordFile.xml", "")
+                zipEntry("keywordFile.xml", "<keywords/>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -219,7 +253,7 @@ final class Zkn3DomSourceReaderTest {
                 "Missing title element; using empty title."
         );
         assertSummaryDiagnostic(batch, source, 1);
-        assertKeywordFileProbeDiagnostic(batch, source);
+        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
     }
 
     @Test
@@ -236,7 +270,7 @@ final class Zkn3DomSourceReaderTest {
                                 </zettelkasten>
                                 """
                 ),
-                zipEntry("keywordFile.xml", "")
+                zipEntry("keywordFile.xml", "<keywords/>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -253,7 +287,7 @@ final class Zkn3DomSourceReaderTest {
                 "Missing content element; using empty body."
         );
         assertSummaryDiagnostic(batch, source, 1);
-        assertKeywordFileProbeDiagnostic(batch, source);
+        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
     }
 
     @Test
@@ -271,7 +305,7 @@ final class Zkn3DomSourceReaderTest {
                                 </zettelkasten>
                                 """
                 ),
-                zipEntry("keywordFile.xml", "")
+                zipEntry("keywordFile.xml", "<keywords/>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -287,7 +321,7 @@ final class Zkn3DomSourceReaderTest {
                 "Malformed rating value; using empty rating."
         );
         assertSummaryDiagnostic(batch, source, 1);
-        assertKeywordFileProbeDiagnostic(batch, source);
+        assertKeywordFileProbeDiagnostic(batch, source, "keywords");
     }
 
     @Test
@@ -309,7 +343,7 @@ final class Zkn3DomSourceReaderTest {
                                 </zettelkasten>
                                 """
                 ),
-                zipEntry("keywordFile.xml", "")
+                zipEntry("keywordFile.xml", "<keywords/>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -346,7 +380,7 @@ final class Zkn3DomSourceReaderTest {
                                 </zettelkasten>
                                 """
                 ),
-                zipEntry("keywordFile.xml", "")
+                zipEntry("keywordFile.xml", "<keywords/>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -383,7 +417,7 @@ final class Zkn3DomSourceReaderTest {
                                 </zettelkasten>
                                 """
                 ),
-                zipEntry("keywordFile.xml", "")
+                zipEntry("keywordFile.xml", "<keywords/>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -497,13 +531,15 @@ final class Zkn3DomSourceReaderTest {
         );
     }
 
-    private static void assertKeywordFileProbeDiagnostic(Zkn3ImportBatch batch, Path source) {
+    private static void assertKeywordFileProbeDiagnostic(Zkn3ImportBatch batch, Path source, String rootName) {
         assertDiagnostic(
                 batch,
                 Zkn3DiagnosticSeverity.INFO,
                 source.toString(),
                 "keywordFile.xml",
-                "Found keywordFile.xml; keyword mapping not implemented yet."
+                "Found parseable keywordFile.xml root element "
+                        + rootName
+                        + "; keyword mapping not implemented yet."
         );
     }
 
@@ -548,6 +584,32 @@ final class Zkn3DomSourceReaderTest {
                         + field
                         + " "
                         + message
+                        + " in "
+                        + batch.diagnostics()
+        );
+    }
+
+    private static void assertDiagnosticPrefix(
+            Zkn3ImportBatch batch,
+            Zkn3DiagnosticSeverity severity,
+            String sourceId,
+            String field,
+            String messagePrefix
+    ) {
+        assertTrue(
+                batch.diagnostics().stream().anyMatch(diagnostic ->
+                        severity == diagnostic.severity()
+                                && sourceId.equals(diagnostic.sourceId())
+                                && field.equals(diagnostic.field())
+                                && diagnostic.message().startsWith(messagePrefix)),
+                "Expected diagnostic prefix "
+                        + severity
+                        + " "
+                        + sourceId
+                        + " "
+                        + field
+                        + " "
+                        + messagePrefix
                         + " in "
                         + batch.diagnostics()
         );
