@@ -34,30 +34,38 @@ final class Zkn3DomSourceReaderTest {
 
     @Test
     void readReturnsSummaryDiagnosticWhenZknFileHasNoZettelElements() throws IOException {
-        Path source = createZip("valid-root.zkn3", "zknFile.xml", "<zettelkasten/>");
+        Path source = createZip(
+                "valid-root.zkn3",
+                zipEntry("zknFile.xml", "<zettelkasten/>"),
+                zipEntry("keywordFile.xml", "")
+        );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertNotNull(batch);
         assertEquals(0, batch.notes().size());
         assertNoRelationRecords(batch);
-        assertEquals(1, batch.diagnostics().size());
+        assertEquals(2, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 0);
+        assertKeywordFileProbeDiagnostic(batch, source);
     }
 
     @Test
     void readMapsOneValidZettelToNoteRecord() throws IOException {
         Path source = createZip(
                 "one-zettel.zkn3",
-                "zknFile.xml",
-                """
-                        <zettelkasten>
-                          <zettel zknid="42" ts_created="1700000000000" ts_edited="1700003600" rating="4">
-                            <title>First note</title>
-                            <content>Body &amp; markup [b]raw[/b]</content>
-                          </zettel>
-                        </zettelkasten>
+                zipEntry(
+                        "zknFile.xml",
                         """
+                                <zettelkasten>
+                                  <zettel zknid="42" ts_created="1700000000000" ts_edited="1700003600" rating="4">
+                                    <title>First note</title>
+                                    <content>Body &amp; markup [b]raw[/b]</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -71,27 +79,31 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(Instant.ofEpochSecond(1700003600L), note.modifiedAt());
         assertEquals(OptionalInt.of(4), note.rating());
         assertNoRelationRecords(batch);
-        assertEquals(1, batch.diagnostics().size());
+        assertEquals(2, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileProbeDiagnostic(batch, source);
     }
 
     @Test
     void readMapsTwoValidZettelElementsToTwoNoteRecords() throws IOException {
         Path source = createZip(
                 "two-zettel.zkn3",
-                "zknFile.xml",
-                """
-                        <zettelkasten>
-                          <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
-                            <title>First</title>
-                            <content>First body</content>
-                          </zettel>
-                          <zettel zknid="2" ts_created="1700000001000" ts_edited="1700000200000" rating="5">
-                            <title>Second</title>
-                            <content>Second body</content>
-                          </zettel>
-                        </zettelkasten>
+                zipEntry(
+                        "zknFile.xml",
                         """
+                                <zettelkasten>
+                                  <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                                    <title>First</title>
+                                    <content>First body</content>
+                                  </zettel>
+                                  <zettel zknid="2" ts_created="1700000001000" ts_edited="1700000200000" rating="5">
+                                    <title>Second</title>
+                                    <content>Second body</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -102,27 +114,63 @@ final class Zkn3DomSourceReaderTest {
         assertEquals("2", batch.notes().get(1).sourceId());
         assertEquals(OptionalInt.of(5), batch.notes().get(1).rating());
         assertNoRelationRecords(batch);
-        assertEquals(1, batch.diagnostics().size());
+        assertEquals(2, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 2);
+        assertKeywordFileProbeDiagnostic(batch, source);
+    }
+
+    @Test
+    void readRejectsBatchWhenKeywordFileEntryIsMissing() throws IOException {
+        Path source = createZip(
+                "missing-keyword-file.zkn3",
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                            <title>First</title>
+                            <content>First body</content>
+                          </zettel>
+                        </zettelkasten>
+                        """
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertNotNull(batch);
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                source.toString(),
+                "keywordFile.xml",
+                "Missing required keywordFile.xml entry in ZKN3 container; "
+                        + "keyword-aware import batch rejected."
+        );
+        assertImportRejectedBatchDiagnostic(batch, source);
     }
 
     @Test
     void readRejectsBatchWhenOneZettelIsMissingZknid() throws IOException {
         Path source = createZip(
                 "missing-zknid.zkn3",
-                "zknFile.xml",
-                """
-                        <zettelkasten>
-                          <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
-                            <title>Valid</title>
-                            <content>Valid body</content>
-                          </zettel>
-                          <zettel ts_created="1700000000" ts_edited="1700000100" rating="1">
-                            <title>Missing ID</title>
-                            <content>Body</content>
-                          </zettel>
-                        </zettelkasten>
+                zipEntry(
+                        "zknFile.xml",
                         """
+                                <zettelkasten>
+                                  <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
+                                    <title>Valid</title>
+                                    <content>Valid body</content>
+                                  </zettel>
+                                  <zettel ts_created="1700000000" ts_edited="1700000100" rating="1">
+                                    <title>Missing ID</title>
+                                    <content>Body</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -144,14 +192,17 @@ final class Zkn3DomSourceReaderTest {
     void readUsesEmptyTitleWhenTitleElementIsMissingAndEmitsWarningDiagnostic() throws IOException {
         Path source = createZip(
                 "missing-title.zkn3",
-                "zknFile.xml",
-                """
-                        <zettelkasten>
-                          <zettel zknid="99" ts_created="1700000000" ts_edited="1700000100">
-                            <content>Body</content>
-                          </zettel>
-                        </zettelkasten>
+                zipEntry(
+                        "zknFile.xml",
                         """
+                                <zettelkasten>
+                                  <zettel zknid="99" ts_created="1700000000" ts_edited="1700000100">
+                                    <content>Body</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -168,20 +219,24 @@ final class Zkn3DomSourceReaderTest {
                 "Missing title element; using empty title."
         );
         assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileProbeDiagnostic(batch, source);
     }
 
     @Test
     void readUsesEmptyBodyWhenContentElementIsMissingAndEmitsWarningDiagnostic() throws IOException {
         Path source = createZip(
                 "missing-content.zkn3",
-                "zknFile.xml",
-                """
-                        <zettelkasten>
-                          <zettel zknid="100" ts_created="1700000000" ts_edited="1700000100">
-                            <title>Title</title>
-                          </zettel>
-                        </zettelkasten>
+                zipEntry(
+                        "zknFile.xml",
                         """
+                                <zettelkasten>
+                                  <zettel zknid="100" ts_created="1700000000" ts_edited="1700000100">
+                                    <title>Title</title>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -198,21 +253,25 @@ final class Zkn3DomSourceReaderTest {
                 "Missing content element; using empty body."
         );
         assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileProbeDiagnostic(batch, source);
     }
 
     @Test
     void readUsesEmptyRatingWhenRatingIsMalformedAndEmitsWarningDiagnostic() throws IOException {
         Path source = createZip(
                 "malformed-rating.zkn3",
-                "zknFile.xml",
-                """
-                        <zettelkasten>
-                          <zettel zknid="101" ts_created="1700000000" ts_edited="1700000100" rating="bad">
-                            <title>Title</title>
-                            <content>Body</content>
-                          </zettel>
-                        </zettelkasten>
+                zipEntry(
+                        "zknFile.xml",
                         """
+                                <zettelkasten>
+                                  <zettel zknid="101" ts_created="1700000000" ts_edited="1700000100" rating="bad">
+                                    <title>Title</title>
+                                    <content>Body</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -228,25 +287,29 @@ final class Zkn3DomSourceReaderTest {
                 "Malformed rating value; using empty rating."
         );
         assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileProbeDiagnostic(batch, source);
     }
 
     @Test
     void readRejectsBatchWhenOneZettelHasMalformedCreatedTimestamp() throws IOException {
         Path source = createZip(
                 "malformed-created.zkn3",
-                "zknFile.xml",
-                """
-                        <zettelkasten>
-                          <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
-                            <title>Valid</title>
-                            <content>Valid body</content>
-                          </zettel>
-                          <zettel zknid="102" ts_created="bad" ts_edited="1700000100" rating="1">
-                            <title>Title</title>
-                            <content>Body</content>
-                          </zettel>
-                        </zettelkasten>
+                zipEntry(
+                        "zknFile.xml",
                         """
+                                <zettelkasten>
+                                  <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
+                                    <title>Valid</title>
+                                    <content>Valid body</content>
+                                  </zettel>
+                                  <zettel zknid="102" ts_created="bad" ts_edited="1700000100" rating="1">
+                                    <title>Title</title>
+                                    <content>Body</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -268,19 +331,22 @@ final class Zkn3DomSourceReaderTest {
     void readRejectsBatchWhenOneZettelIsMissingEditedTimestamp() throws IOException {
         Path source = createZip(
                 "missing-edited.zkn3",
-                "zknFile.xml",
-                """
-                        <zettelkasten>
-                          <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
-                            <title>Valid</title>
-                            <content>Valid body</content>
-                          </zettel>
-                          <zettel zknid="103" ts_created="1700000000" rating="1">
-                            <title>Title</title>
-                            <content>Body</content>
-                          </zettel>
-                        </zettelkasten>
+                zipEntry(
+                        "zknFile.xml",
                         """
+                                <zettelkasten>
+                                  <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
+                                    <title>Valid</title>
+                                    <content>Valid body</content>
+                                  </zettel>
+                                  <zettel zknid="103" ts_created="1700000000" rating="1">
+                                    <title>Title</title>
+                                    <content>Body</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -302,19 +368,22 @@ final class Zkn3DomSourceReaderTest {
     void readRejectsBatchWhenOneZettelHasMalformedEditedTimestamp() throws IOException {
         Path source = createZip(
                 "malformed-edited.zkn3",
-                "zknFile.xml",
-                """
-                        <zettelkasten>
-                          <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
-                            <title>Valid</title>
-                            <content>Valid body</content>
-                          </zettel>
-                          <zettel zknid="104" ts_created="1700000000" ts_edited="bad" rating="1">
-                            <title>Title</title>
-                            <content>Body</content>
-                          </zettel>
-                        </zettelkasten>
+                zipEntry(
+                        "zknFile.xml",
                         """
+                                <zettelkasten>
+                                  <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
+                                    <title>Valid</title>
+                                    <content>Valid body</content>
+                                  </zettel>
+                                  <zettel zknid="104" ts_created="1700000000" ts_edited="bad" rating="1">
+                                    <title>Title</title>
+                                    <content>Body</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
@@ -391,13 +460,23 @@ final class Zkn3DomSourceReaderTest {
     }
 
     private Path createZip(String fileName, String entryName, String content) throws IOException {
+        return createZip(fileName, zipEntry(entryName, content));
+    }
+
+    private Path createZip(String fileName, ZipFixtureEntry... entries) throws IOException {
         Path source = tempDir.resolve(fileName);
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(source))) {
-            zip.putNextEntry(new ZipEntry(entryName));
-            zip.write(content.getBytes(StandardCharsets.UTF_8));
-            zip.closeEntry();
+            for (ZipFixtureEntry entry : entries) {
+                zip.putNextEntry(new ZipEntry(entry.name()));
+                zip.write(entry.content().getBytes(StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
         }
         return source;
+    }
+
+    private static ZipFixtureEntry zipEntry(String name, String content) {
+        return new ZipFixtureEntry(name, content);
     }
 
     private static void assertNoRelationRecords(Zkn3ImportBatch batch) {
@@ -418,6 +497,16 @@ final class Zkn3DomSourceReaderTest {
         );
     }
 
+    private static void assertKeywordFileProbeDiagnostic(Zkn3ImportBatch batch, Path source) {
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.INFO,
+                source.toString(),
+                "keywordFile.xml",
+                "Found keywordFile.xml; keyword mapping not implemented yet."
+        );
+    }
+
     private static void assertRejectedBatchDiagnostic(Zkn3ImportBatch batch, Path source) {
         assertDiagnostic(
                 batch,
@@ -425,6 +514,16 @@ final class Zkn3DomSourceReaderTest {
                 source.toString(),
                 "zettel",
                 "ZKN3 note batch is incomplete and rejected; no note records extracted."
+        );
+    }
+
+    private static void assertImportRejectedBatchDiagnostic(Zkn3ImportBatch batch, Path source) {
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                source.toString(),
+                "import",
+                "ZKN3 import batch is incomplete and rejected."
         );
     }
 
@@ -494,5 +593,8 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(source.toString(), diagnostic.sourceId());
         assertEquals(field, diagnostic.field());
         assertEquals(messagePrefix, diagnostic.message().substring(0, messagePrefix.length()));
+    }
+
+    private record ZipFixtureEntry(String name, String content) {
     }
 }

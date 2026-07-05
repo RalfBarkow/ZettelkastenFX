@@ -32,10 +32,13 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static final String ZKN_FILE_ENTRY = "zknFile.xml";
+    private static final String KEYWORD_FILE_ENTRY = "keywordFile.xml";
     private static final String EXPECTED_ROOT = "zettelkasten";
     private static final String ZETTEL_ELEMENT = "zettel";
     private static final String INCOMPLETE_BATCH_MESSAGE =
             "ZKN3 note batch is incomplete and rejected; no note records extracted.";
+    private static final String INCOMPLETE_IMPORT_BATCH_MESSAGE =
+            "ZKN3 import batch is incomplete and rejected.";
 
     @Override
     public Zkn3ImportBatch read(Path zkn3File) throws IOException {
@@ -44,7 +47,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         try (ZipFile zipFile = new ZipFile(zkn3File.toFile())) {
             ZipEntry zknFile = zipFile.getEntry(ZKN_FILE_ENTRY);
             if (zknFile != null) {
-                return probeZknFileRoot(zkn3File, zipFile, zknFile);
+                return probeZknFileRoot(zkn3File, zipFile, zknFile, zipFile.getEntry(KEYWORD_FILE_ENTRY));
             }
 
             return emptyBatchWithDiagnostic(
@@ -58,7 +61,8 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static Zkn3ImportBatch probeZknFileRoot(
             Path zkn3File,
             ZipFile zipFile,
-            ZipEntry zknFile
+            ZipEntry zknFile,
+            ZipEntry keywordFile
     ) throws IOException {
         try (InputStream inputStream = zipFile.getInputStream(zknFile)) {
             DocumentBuilder documentBuilder = newSecureDocumentBuilderFactory().newDocumentBuilder();
@@ -68,7 +72,16 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             String rootName = root == null ? "" : root.getTagName();
 
             if (EXPECTED_ROOT.equals(rootName)) {
-                return extractNoteRecords(zkn3File, root);
+                Zkn3ImportBatch noteBatch = extractNoteRecords(zkn3File, root);
+                if (hasErrorDiagnostic(noteBatch)) {
+                    return noteBatch;
+                }
+
+                if (keywordFile == null) {
+                    return rejectedBatchWithMissingKeywordFileDiagnostic(zkn3File);
+                }
+
+                return noteBatchWithKeywordFileProbeDiagnostic(zkn3File, noteBatch);
             }
 
             return emptyBatchWithDiagnostic(
@@ -84,6 +97,56 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                     "Could not parse zknFile.xml root element: " + e.getMessage()
             );
         }
+    }
+
+    private static boolean hasErrorDiagnostic(Zkn3ImportBatch batch) {
+        return batch.diagnostics().stream()
+                .anyMatch(diagnostic -> Zkn3DiagnosticSeverity.ERROR == diagnostic.severity());
+    }
+
+    private static Zkn3ImportBatch rejectedBatchWithMissingKeywordFileDiagnostic(Path zkn3File) {
+        return new Zkn3ImportBatch(
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(
+                        new Zkn3ImportDiagnostic(
+                                Zkn3DiagnosticSeverity.ERROR,
+                                zkn3File.toString(),
+                                KEYWORD_FILE_ENTRY,
+                                "Missing required keywordFile.xml entry in ZKN3 container; "
+                                        + "keyword-aware import batch rejected."
+                        ),
+                        new Zkn3ImportDiagnostic(
+                                Zkn3DiagnosticSeverity.ERROR,
+                                zkn3File.toString(),
+                                "import",
+                                INCOMPLETE_IMPORT_BATCH_MESSAGE
+                        )
+                )
+        );
+    }
+
+    private static Zkn3ImportBatch noteBatchWithKeywordFileProbeDiagnostic(
+            Path zkn3File,
+            Zkn3ImportBatch noteBatch
+    ) {
+        List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>(noteBatch.diagnostics());
+        diagnostics.add(new Zkn3ImportDiagnostic(
+                Zkn3DiagnosticSeverity.INFO,
+                zkn3File.toString(),
+                KEYWORD_FILE_ENTRY,
+                "Found keywordFile.xml; keyword mapping not implemented yet."
+        ));
+
+        return new Zkn3ImportBatch(
+                noteBatch.notes(),
+                List.of(),
+                List.of(),
+                List.of(),
+                diagnostics
+        );
     }
 
     private static Zkn3ImportBatch extractNoteRecords(Path zkn3File, Element root) {
