@@ -42,6 +42,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static final String ZETTEL_ELEMENT = "zettel";
     private static final String LINKS_ELEMENT = "links";
     private static final String LINK_ELEMENT = "link";
+    private static final String MANLINKS_ELEMENT = "manlinks";
     private static final String INCOMPLETE_BATCH_MESSAGE =
             "ZKN3 note batch is incomplete and rejected; no note records extracted.";
     private static final String INCOMPLETE_IMPORT_BATCH_MESSAGE =
@@ -149,11 +150,17 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 return rejectedBatchWithUnsupportedAttachmentDiagnostic(zkn3File, unsupportedAttachment.get());
             }
 
+            ManualLinkResolutionResult manualLinks = resolveManualLinks(zknRoot);
+            if (hasErrorDiagnostic(manualLinks.diagnostics())) {
+                return rejectedBatchWithManualLinkDiagnostics(zkn3File, manualLinks.diagnostics());
+            }
+
             return noteBatchWithKeywordFileDiagnostics(
                     zkn3File,
                     noteBatch,
                     keywordEntries.size(),
-                    resolution.keywordRecords()
+                    resolution.keywordRecords(),
+                    manualLinks
             );
         } catch (ParserConfigurationException | SAXException e) {
             return rejectedBatchWithMalformedKeywordFileDiagnostic(zkn3File, e);
@@ -241,6 +248,122 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 .map(keyword -> new Zkn3KeywordRecord(sourceId, keyword))
                 .toList();
         return new KeywordResolutionResult(keywordRecords, diagnostics);
+    }
+
+    private static ManualLinkResolutionResult resolveManualLinks(Element zknRoot) {
+        List<Element> zettels = zettelElements(zknRoot);
+        List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>();
+        Set<String> resolvedReferences = new LinkedHashSet<>();
+
+        for (Element source : zettels) {
+            String sourceId = source.getAttribute("zknid").trim();
+            Optional<String> manlinks = directChildText(source, MANLINKS_ELEMENT);
+            if (manlinks.isEmpty() || manlinks.get().trim().isEmpty()) {
+                continue;
+            }
+
+            String[] tokens = manlinks.get().split(",");
+            for (String token : tokens) {
+                String trimmed = token.trim();
+                if (!trimmed.isEmpty()) {
+                    resolveManualLinkToken(sourceId, trimmed, zettels, resolvedReferences, diagnostics);
+                }
+            }
+        }
+
+        int resolvedReferenceCount = diagnostics.stream()
+                .anyMatch(diagnostic -> Zkn3DiagnosticSeverity.ERROR == diagnostic.severity())
+                ? 0
+                : resolvedReferences.size();
+        return new ManualLinkResolutionResult(resolvedReferenceCount, diagnostics);
+    }
+
+    private static List<Element> zettelElements(Element zknRoot) {
+        List<Element> zettels = new ArrayList<>();
+        NodeList children = zknRoot.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+                if (ZETTEL_ELEMENT.equals(element.getTagName())) {
+                    zettels.add(element);
+                }
+            }
+        }
+        return zettels;
+    }
+
+    private static void resolveManualLinkToken(
+            String sourceId,
+            String token,
+            List<Element> zettels,
+            Set<String> resolvedReferences,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
+        int manualLinkIndex;
+        try {
+            manualLinkIndex = Integer.parseInt(token);
+        } catch (NumberFormatException e) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    sourceId,
+                    MANLINKS_ELEMENT,
+                    "Invalid manual link token '"
+                            + token
+                            + "'; expected one-based integer zettel entry reference."
+            ));
+            return;
+        }
+
+        if (manualLinkIndex <= 0) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    sourceId,
+                    MANLINKS_ELEMENT,
+                    "Invalid manual link index "
+                            + manualLinkIndex
+                            + "; zettel entry positions are one-based and must be greater than zero."
+            ));
+            return;
+        }
+
+        int targetIndex = manualLinkIndex - 1;
+        if (targetIndex >= zettels.size()) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    sourceId,
+                    MANLINKS_ELEMENT,
+                    "Manual link index "
+                            + manualLinkIndex
+                            + " is out of range for zknFile.xml with "
+                            + zettels.size()
+                            + " zettel entries."
+            ));
+            return;
+        }
+
+        String targetId = zettels.get(targetIndex).getAttribute("zknid").trim();
+        if (targetId.isEmpty()) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    sourceId,
+                    MANLINKS_ELEMENT,
+                    "Manual link index "
+                            + manualLinkIndex
+                            + " resolves to a target zettel without a source id."
+            ));
+            return;
+        }
+
+        boolean firstResolvedReference = resolvedReferences.add(sourceId + "->" + targetId);
+        if (firstResolvedReference && sourceId.equals(targetId)) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.WARNING,
+                    sourceId,
+                    MANLINKS_ELEMENT,
+                    "Manual link resolves to the source note itself; record-mapping policy not decided yet."
+            ));
+        }
     }
 
     private static Optional<Zkn3ImportDiagnostic> firstUnsupportedAttachmentDiagnostic(Element zknRoot) {
@@ -363,6 +486,11 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 .anyMatch(diagnostic -> Zkn3DiagnosticSeverity.ERROR == diagnostic.severity());
     }
 
+    private static boolean hasErrorDiagnostic(List<Zkn3ImportDiagnostic> diagnostics) {
+        return diagnostics.stream()
+                .anyMatch(diagnostic -> Zkn3DiagnosticSeverity.ERROR == diagnostic.severity());
+    }
+
     private static Zkn3ImportBatch rejectedBatchWithMissingKeywordFileDiagnostic(Path zkn3File) {
         return new Zkn3ImportBatch(
                 List.of(),
@@ -475,11 +603,33 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         );
     }
 
+    private static Zkn3ImportBatch rejectedBatchWithManualLinkDiagnostics(
+            Path zkn3File,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
+        List<Zkn3ImportDiagnostic> rejectedDiagnostics = new ArrayList<>(diagnostics);
+        rejectedDiagnostics.add(new Zkn3ImportDiagnostic(
+                Zkn3DiagnosticSeverity.ERROR,
+                zkn3File.toString(),
+                "import",
+                INCOMPLETE_IMPORT_BATCH_MESSAGE
+        ));
+
+        return new Zkn3ImportBatch(
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                rejectedDiagnostics
+        );
+    }
+
     private static Zkn3ImportBatch noteBatchWithKeywordFileDiagnostics(
             Path zkn3File,
             Zkn3ImportBatch noteBatch,
             int entryCount,
-            List<Zkn3KeywordRecord> keywordRecords
+            List<Zkn3KeywordRecord> keywordRecords,
+            ManualLinkResolutionResult manualLinks
     ) {
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>(noteBatch.diagnostics());
         diagnostics.add(new Zkn3ImportDiagnostic(
@@ -499,6 +649,17 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                         + " ZKN3 keyword records for "
                         + noteBatch.notes().size()
                         + " notes."
+        ));
+        diagnostics.addAll(manualLinks.diagnostics());
+        diagnostics.add(new Zkn3ImportDiagnostic(
+                Zkn3DiagnosticSeverity.INFO,
+                zkn3File.toString(),
+                MANLINKS_ELEMENT,
+                "Resolved "
+                        + manualLinks.resolvedReferenceCount()
+                        + " manual link references for "
+                        + noteBatch.notes().size()
+                        + " notes; link record mapping not implemented yet."
         ));
 
         return new Zkn3ImportBatch(
@@ -752,6 +913,12 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
 
     private record KeywordResolutionResult(
             List<Zkn3KeywordRecord> keywordRecords,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
+    }
+
+    private record ManualLinkResolutionResult(
+            int resolvedReferenceCount,
             List<Zkn3ImportDiagnostic> diagnostics
     ) {
     }
