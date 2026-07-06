@@ -4,6 +4,8 @@ import zk.core.importing.Zkn3DiagnosticSeverity;
 import zk.core.importing.Zkn3ImportBatch;
 import zk.core.importing.Zkn3ImportDiagnostic;
 import zk.core.importing.Zkn3KeywordRecord;
+import zk.core.importing.Zkn3LinkKind;
+import zk.core.importing.Zkn3LinkRecord;
 import zk.core.importing.Zkn3NoteRecord;
 import zk.core.ports.Zkn3SourceReader;
 import org.w3c.dom.Document;
@@ -253,7 +255,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static ManualLinkResolutionResult resolveManualLinks(Element zknRoot) {
         List<Element> zettels = zettelElements(zknRoot);
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>();
-        Set<String> resolvedReferences = new LinkedHashSet<>();
+        Set<Zkn3LinkRecord> resolvedLinks = new LinkedHashSet<>();
 
         for (Element source : zettels) {
             String sourceId = source.getAttribute("zknid").trim();
@@ -266,16 +268,16 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             for (String token : tokens) {
                 String trimmed = token.trim();
                 if (!trimmed.isEmpty()) {
-                    resolveManualLinkToken(sourceId, trimmed, zettels, resolvedReferences, diagnostics);
+                    resolveManualLinkToken(sourceId, trimmed, zettels, resolvedLinks, diagnostics);
                 }
             }
         }
 
-        int resolvedReferenceCount = diagnostics.stream()
-                .anyMatch(diagnostic -> Zkn3DiagnosticSeverity.ERROR == diagnostic.severity())
-                ? 0
-                : resolvedReferences.size();
-        return new ManualLinkResolutionResult(resolvedReferenceCount, diagnostics);
+        if (diagnostics.stream().anyMatch(diagnostic -> Zkn3DiagnosticSeverity.ERROR == diagnostic.severity())) {
+            return new ManualLinkResolutionResult(List.of(), diagnostics);
+        }
+
+        return new ManualLinkResolutionResult(new ArrayList<>(resolvedLinks), diagnostics);
     }
 
     private static List<Element> zettelElements(Element zknRoot) {
@@ -297,7 +299,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             String sourceId,
             String token,
             List<Element> zettels,
-            Set<String> resolvedReferences,
+            Set<Zkn3LinkRecord> resolvedLinks,
             List<Zkn3ImportDiagnostic> diagnostics
     ) {
         int manualLinkIndex;
@@ -355,13 +357,14 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             return;
         }
 
-        boolean firstResolvedReference = resolvedReferences.add(sourceId + "->" + targetId);
+        Zkn3LinkRecord linkRecord = new Zkn3LinkRecord(sourceId, targetId, Zkn3LinkKind.MANUAL);
+        boolean firstResolvedReference = resolvedLinks.add(linkRecord);
         if (firstResolvedReference && sourceId.equals(targetId)) {
             diagnostics.add(new Zkn3ImportDiagnostic(
                     Zkn3DiagnosticSeverity.WARNING,
                     sourceId,
                     MANLINKS_ELEMENT,
-                    "Manual link resolves to the source note itself; record-mapping policy not decided yet."
+                    "Manual link resolves to the source note itself; preserving explicit self-link."
             ));
         }
     }
@@ -655,17 +658,17 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 Zkn3DiagnosticSeverity.INFO,
                 zkn3File.toString(),
                 MANLINKS_ELEMENT,
-                "Resolved "
-                        + manualLinks.resolvedReferenceCount()
-                        + " manual link references for "
+                "Extracted "
+                        + manualLinks.linkRecords().size()
+                        + " ZKN3 manual link records for "
                         + noteBatch.notes().size()
-                        + " notes; link record mapping not implemented yet."
+                        + " notes."
         ));
 
         return new Zkn3ImportBatch(
                 noteBatch.notes(),
                 keywordRecords,
-                List.of(),
+                manualLinks.linkRecords(),
                 List.of(),
                 diagnostics
         );
@@ -708,7 +711,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 ZETTEL_ELEMENT,
                 "Extracted "
                         + notes.size()
-                        + " ZKN3 note records; link, manual-link, and sequence mapping not implemented yet."
+                        + " ZKN3 note records; attachment-link and sequence mapping not implemented yet."
         ));
 
         return new Zkn3ImportBatch(notes, List.of(), List.of(), List.of(), diagnostics);
@@ -918,7 +921,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     }
 
     private record ManualLinkResolutionResult(
-            int resolvedReferenceCount,
+            List<Zkn3LinkRecord> linkRecords,
             List<Zkn3ImportDiagnostic> diagnostics
     ) {
     }

@@ -6,6 +6,8 @@ import zk.core.importing.Zkn3DiagnosticSeverity;
 import zk.core.importing.Zkn3ImportBatch;
 import zk.core.importing.Zkn3ImportDiagnostic;
 import zk.core.importing.Zkn3KeywordRecord;
+import zk.core.importing.Zkn3LinkKind;
+import zk.core.importing.Zkn3LinkRecord;
 import zk.core.importing.Zkn3NoteRecord;
 import zk.core.ports.Zkn3SourceReader;
 
@@ -439,7 +441,7 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readResolvesOneManualLinkReferenceWithoutCreatingLinkRecord() throws IOException {
+    void readMapsOneManualLinkReferenceToManualLinkRecord() throws IOException {
         Path source = createZip(
                 "manual-link-one.zkn3",
                 validTwoZknFileEntryWithFirstManlinks("<manlinks>2</manlinks>"),
@@ -452,16 +454,18 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(2, batch.keywords().size());
         assertKeywordRecord(batch.keywords().get(0), "1", "alpha");
         assertKeywordRecord(batch.keywords().get(1), "2", "alpha");
-        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(1, batch.links().size());
+        assertManualLinkRecord(batch.links().get(0), "1", "2");
+        assertEquals(0, batch.sequences().size());
         assertEquals(4, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 2);
         assertKeywordFileShapeDiagnostic(batch, source, 1);
         assertKeywordResolutionDiagnostic(batch, source, 2, 2);
-        assertManualLinkResolutionDiagnostic(batch, source, 1, 2);
+        assertManualLinkRecordDiagnostic(batch, source, 1, 2);
     }
 
     @Test
-    void readResolvesMultipleManualLinkReferencesWithoutCreatingLinkRecords() throws IOException {
+    void readMapsMultipleManualLinkReferencesInTokenOrder() throws IOException {
         Path source = createZip(
                 "manual-link-two.zkn3",
                 validThreeZknFileEntryWithFirstManlinks("<manlinks>2,3</manlinks>"),
@@ -472,13 +476,16 @@ final class Zkn3DomSourceReaderTest {
 
         assertEquals(3, batch.notes().size());
         assertEquals(3, batch.keywords().size());
-        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(2, batch.links().size());
+        assertManualLinkRecord(batch.links().get(0), "1", "2");
+        assertManualLinkRecord(batch.links().get(1), "1", "3");
+        assertEquals(0, batch.sequences().size());
         assertEquals(4, batch.diagnostics().size());
-        assertManualLinkResolutionDiagnostic(batch, source, 2, 3);
+        assertManualLinkRecordDiagnostic(batch, source, 2, 3);
     }
 
     @Test
-    void readTrimsWhitespaceAroundManualLinkReferenceTokens() throws IOException {
+    void readTrimsWhitespaceAroundManualLinkReferenceTokensBeforeMappingRecords() throws IOException {
         Path source = createZip(
                 "manual-link-whitespace.zkn3",
                 validThreeZknFileEntryWithFirstManlinks("<manlinks> 2 , 3 </manlinks>"),
@@ -488,9 +495,12 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertEquals(3, batch.notes().size());
-        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(2, batch.links().size());
+        assertManualLinkRecord(batch.links().get(0), "1", "2");
+        assertManualLinkRecord(batch.links().get(1), "1", "3");
+        assertEquals(0, batch.sequences().size());
         assertEquals(4, batch.diagnostics().size());
-        assertManualLinkResolutionDiagnostic(batch, source, 2, 3);
+        assertManualLinkRecordDiagnostic(batch, source, 2, 3);
     }
 
     @Test
@@ -507,7 +517,7 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(1, batch.keywords().size());
         assertNoLinkOrSequenceRecords(batch);
         assertEquals(4, batch.diagnostics().size());
-        assertManualLinkResolutionDiagnostic(batch, source, 0, 1);
+        assertManualLinkRecordDiagnostic(batch, source, 0, 1);
     }
 
     @Test
@@ -524,11 +534,11 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(1, batch.keywords().size());
         assertNoLinkOrSequenceRecords(batch);
         assertEquals(4, batch.diagnostics().size());
-        assertManualLinkResolutionDiagnostic(batch, source, 0, 1);
+        assertManualLinkRecordDiagnostic(batch, source, 0, 1);
     }
 
     @Test
-    void readDeduplicatesDuplicateManualLinkReferenceForDiagnosticCountOnly() throws IOException {
+    void readDeduplicatesDuplicateManualLinkReferenceForSameSourceTargetKind() throws IOException {
         Path source = createZip(
                 "duplicate-manlink.zkn3",
                 validTwoZknFileEntryWithFirstManlinks("<manlinks>2,2</manlinks>"),
@@ -539,9 +549,34 @@ final class Zkn3DomSourceReaderTest {
 
         assertEquals(2, batch.notes().size());
         assertEquals(2, batch.keywords().size());
-        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(1, batch.links().size());
+        assertManualLinkRecord(batch.links().get(0), "1", "2");
+        assertEquals(0, batch.sequences().size());
         assertEquals(4, batch.diagnostics().size());
-        assertManualLinkResolutionDiagnostic(batch, source, 1, 2);
+        assertManualLinkRecordDiagnostic(batch, source, 1, 2);
+    }
+
+    @Test
+    void readPreservesDifferentSourceNotesLinkingToSameTargetNote() throws IOException {
+        Path source = createZip(
+                "manual-link-same-target.zkn3",
+                validThreeZknFileEntryWithFirstAndSecondManlinks(
+                        "<manlinks>3</manlinks>",
+                        "<manlinks>3</manlinks>"
+                ),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(3, batch.notes().size());
+        assertEquals(3, batch.keywords().size());
+        assertEquals(2, batch.links().size());
+        assertManualLinkRecord(batch.links().get(0), "1", "3");
+        assertManualLinkRecord(batch.links().get(1), "2", "3");
+        assertEquals(0, batch.sequences().size());
+        assertEquals(4, batch.diagnostics().size());
+        assertManualLinkRecordDiagnostic(batch, source, 2, 3);
     }
 
     @Test
@@ -621,7 +656,7 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readAllowsSelfLinkWithWarningDuringResolutionProbe() throws IOException {
+    void readMapsSelfLinkWithWarning() throws IOException {
         Path source = createZip(
                 "manual-link-self.zkn3",
                 validZknFileEntryWithKeywordsAndManlinks("1", "<manlinks>1</manlinks>"),
@@ -632,16 +667,57 @@ final class Zkn3DomSourceReaderTest {
 
         assertEquals(1, batch.notes().size());
         assertEquals(1, batch.keywords().size());
-        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(1, batch.links().size());
+        assertManualLinkRecord(batch.links().get(0), "1", "1");
+        assertEquals(0, batch.sequences().size());
         assertEquals(5, batch.diagnostics().size());
         assertDiagnostic(
                 batch,
                 Zkn3DiagnosticSeverity.WARNING,
                 "1",
                 "manlinks",
-                "Manual link resolves to the source note itself; record-mapping policy not decided yet."
+                "Manual link resolves to the source note itself; preserving explicit self-link."
         );
-        assertManualLinkResolutionDiagnostic(batch, source, 1, 1);
+        assertManualLinkRecordDiagnostic(batch, source, 1, 1);
+    }
+
+    @Test
+    void readRejectsManualLinkTargetWithoutZknidBeforeRecordMapping() throws IOException {
+        Path source = createZip(
+                "manual-link-target-without-zknid.zkn3",
+                zipEntry(
+                        "zknFile.xml",
+                        """
+                                <zettelkasten>
+                                  <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                                    <title>First</title>
+                                    <content>First body</content>
+                                    <keywords>1</keywords>
+                                    <manlinks>2</manlinks>
+                                  </zettel>
+                                  <zettel zknid="" ts_created="1700000001" ts_edited="1700000101" rating="">
+                                    <title>Missing source id</title>
+                                    <content>Second body</content>
+                                    <keywords>1</keywords>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertRejectedBatchHasNoRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                source.toString(),
+                "zknid",
+                "Missing required zknid attribute."
+        );
+        assertRejectedBatchDiagnostic(batch, source);
     }
 
     @Test
@@ -1374,6 +1450,36 @@ final class Zkn3DomSourceReaderTest {
         );
     }
 
+    private static ZipFixtureEntry validThreeZknFileEntryWithFirstAndSecondManlinks(
+            String firstManlinksElement,
+            String secondManlinksElement
+    ) {
+        return zipEntry(
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                            <title>First</title>
+                            <content>First body</content>
+                            <keywords>1</keywords>
+                            %s
+                          </zettel>
+                          <zettel zknid="2" ts_created="1700000001" ts_edited="1700000101" rating="">
+                            <title>Second</title>
+                            <content>Second body</content>
+                            <keywords>1</keywords>
+                            %s
+                          </zettel>
+                          <zettel zknid="3" ts_created="1700000002" ts_edited="1700000102" rating="">
+                            <title>Third</title>
+                            <content>Third body</content>
+                            <keywords>1</keywords>
+                          </zettel>
+                        </zettelkasten>
+                        """.formatted(firstManlinksElement, secondManlinksElement)
+        );
+    }
+
     private static ZipFixtureEntry validZknFileEntryWithKeywordsAndLinks(String keywords, String linksElement) {
         return zipEntry(
                 "zknFile.xml",
@@ -1412,6 +1518,12 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(keyword, record.keyword());
     }
 
+    private static void assertManualLinkRecord(Zkn3LinkRecord record, String fromSourceId, String toSourceId) {
+        assertEquals(fromSourceId, record.fromSourceId());
+        assertEquals(toSourceId, record.toSourceId());
+        assertEquals(Zkn3LinkKind.MANUAL, record.kind());
+    }
+
     private static void assertSummaryDiagnostic(Zkn3ImportBatch batch, Path source, int noteCount) {
         assertDiagnostic(
                 batch,
@@ -1420,7 +1532,7 @@ final class Zkn3DomSourceReaderTest {
                 "zettel",
                 "Extracted "
                         + noteCount
-                        + " ZKN3 note records; link, manual-link, and sequence mapping not implemented yet."
+                        + " ZKN3 note records; attachment-link and sequence mapping not implemented yet."
         );
     }
 
@@ -1492,10 +1604,10 @@ final class Zkn3DomSourceReaderTest {
         );
     }
 
-    private static void assertManualLinkResolutionDiagnostic(
+    private static void assertManualLinkRecordDiagnostic(
             Zkn3ImportBatch batch,
             Path source,
-            int resolvedReferenceCount,
+            int linkRecordCount,
             int noteCount
     ) {
         assertDiagnostic(
@@ -1503,11 +1615,11 @@ final class Zkn3DomSourceReaderTest {
                 Zkn3DiagnosticSeverity.INFO,
                 source.toString(),
                 "manlinks",
-                "Resolved "
-                        + resolvedReferenceCount
-                        + " manual link references for "
+                "Extracted "
+                        + linkRecordCount
+                        + " ZKN3 manual link records for "
                         + noteCount
-                        + " notes; link record mapping not implemented yet."
+                        + " notes."
         );
     }
 
