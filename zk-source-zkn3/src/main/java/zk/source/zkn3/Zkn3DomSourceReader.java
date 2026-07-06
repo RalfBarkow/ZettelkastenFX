@@ -45,6 +45,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static final String LINKS_ELEMENT = "links";
     private static final String LINK_ELEMENT = "link";
     private static final String MANLINKS_ELEMENT = "manlinks";
+    private static final String LUHMANN_ELEMENT = "luhmann";
     private static final String INCOMPLETE_BATCH_MESSAGE =
             "ZKN3 note batch is incomplete and rejected; no note records extracted.";
     private static final String INCOMPLETE_IMPORT_BATCH_MESSAGE =
@@ -157,12 +158,18 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 return rejectedBatchWithManualLinkDiagnostics(zkn3File, manualLinks.diagnostics());
             }
 
+            LuhmannResolutionResult luhmann = resolveLuhmannSequences(zknRoot);
+            if (hasErrorDiagnostic(luhmann.diagnostics())) {
+                return rejectedBatchWithLuhmannDiagnostics(zkn3File, luhmann.diagnostics());
+            }
+
             return noteBatchWithKeywordFileDiagnostics(
                     zkn3File,
                     noteBatch,
                     keywordEntries.size(),
                     resolution.keywordRecords(),
-                    manualLinks
+                    manualLinks,
+                    luhmann
             );
         } catch (ParserConfigurationException | SAXException e) {
             return rejectedBatchWithMalformedKeywordFileDiagnostic(zkn3File, e);
@@ -280,6 +287,34 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         return new ManualLinkResolutionResult(new ArrayList<>(resolvedLinks), diagnostics);
     }
 
+    private static LuhmannResolutionResult resolveLuhmannSequences(Element zknRoot) {
+        List<Element> zettels = zettelElements(zknRoot);
+        List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>();
+        Set<String> resolvedReferences = new LinkedHashSet<>();
+
+        for (Element source : zettels) {
+            String sourceId = source.getAttribute("zknid").trim();
+            Optional<String> luhmann = directChildText(source, LUHMANN_ELEMENT);
+            if (luhmann.isEmpty() || luhmann.get().trim().isEmpty()) {
+                continue;
+            }
+
+            String[] tokens = luhmann.get().split(",");
+            for (String token : tokens) {
+                String trimmed = token.trim();
+                if (!trimmed.isEmpty()) {
+                    resolveLuhmannToken(sourceId, trimmed, zettels, resolvedReferences, diagnostics);
+                }
+            }
+        }
+
+        if (hasErrorDiagnostic(diagnostics)) {
+            return new LuhmannResolutionResult(0, diagnostics);
+        }
+
+        return new LuhmannResolutionResult(resolvedReferences.size(), diagnostics);
+    }
+
     private static List<Element> zettelElements(Element zknRoot) {
         List<Element> zettels = new ArrayList<>();
         NodeList children = zknRoot.getChildNodes();
@@ -367,6 +402,82 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                     "Manual link resolves to the source note itself; preserving explicit self-link."
             ));
         }
+    }
+
+    private static void resolveLuhmannToken(
+            String parentId,
+            String token,
+            List<Element> zettels,
+            Set<String> resolvedReferences,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
+        int luhmannIndex;
+        try {
+            luhmannIndex = Integer.parseInt(token);
+        } catch (NumberFormatException e) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    parentId,
+                    LUHMANN_ELEMENT,
+                    "Invalid Luhmann sequence token '"
+                            + token
+                            + "'; expected one-based integer zettel entry reference."
+            ));
+            return;
+        }
+
+        if (luhmannIndex <= 0) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    parentId,
+                    LUHMANN_ELEMENT,
+                    "Invalid Luhmann sequence index "
+                            + luhmannIndex
+                            + "; zettel entry positions are one-based and must be greater than zero."
+            ));
+            return;
+        }
+
+        int childIndex = luhmannIndex - 1;
+        if (childIndex >= zettels.size()) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    parentId,
+                    LUHMANN_ELEMENT,
+                    "Luhmann sequence index "
+                            + luhmannIndex
+                            + " is out of range for zknFile.xml with "
+                            + zettels.size()
+                            + " zettel entries."
+            ));
+            return;
+        }
+
+        String childId = zettels.get(childIndex).getAttribute("zknid").trim();
+        if (childId.isEmpty()) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    parentId,
+                    LUHMANN_ELEMENT,
+                    "Luhmann sequence index "
+                            + luhmannIndex
+                            + " resolves to a child zettel without a source id."
+            ));
+            return;
+        }
+
+        if (parentId.equals(childId)) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    parentId,
+                    LUHMANN_ELEMENT,
+                    "Luhmann sequence reference resolves to the parent note itself; "
+                            + "complete import batch rejected."
+            ));
+            return;
+        }
+
+        resolvedReferences.add(parentId + "->" + childId);
     }
 
     private static Optional<Zkn3ImportDiagnostic> firstUnsupportedAttachmentDiagnostic(Element zknRoot) {
@@ -627,12 +738,34 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         );
     }
 
+    private static Zkn3ImportBatch rejectedBatchWithLuhmannDiagnostics(
+            Path zkn3File,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
+        List<Zkn3ImportDiagnostic> rejectedDiagnostics = new ArrayList<>(diagnostics);
+        rejectedDiagnostics.add(new Zkn3ImportDiagnostic(
+                Zkn3DiagnosticSeverity.ERROR,
+                zkn3File.toString(),
+                "import",
+                INCOMPLETE_IMPORT_BATCH_MESSAGE
+        ));
+
+        return new Zkn3ImportBatch(
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                rejectedDiagnostics
+        );
+    }
+
     private static Zkn3ImportBatch noteBatchWithKeywordFileDiagnostics(
             Path zkn3File,
             Zkn3ImportBatch noteBatch,
             int entryCount,
             List<Zkn3KeywordRecord> keywordRecords,
-            ManualLinkResolutionResult manualLinks
+            ManualLinkResolutionResult manualLinks,
+            LuhmannResolutionResult luhmann
     ) {
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>(noteBatch.diagnostics());
         diagnostics.add(new Zkn3ImportDiagnostic(
@@ -663,6 +796,17 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                         + " ZKN3 manual link records for "
                         + noteBatch.notes().size()
                         + " notes."
+        ));
+        diagnostics.addAll(luhmann.diagnostics());
+        diagnostics.add(new Zkn3ImportDiagnostic(
+                Zkn3DiagnosticSeverity.INFO,
+                zkn3File.toString(),
+                LUHMANN_ELEMENT,
+                "Resolved "
+                        + luhmann.resolvedReferenceCount()
+                        + " Luhmann sequence references for "
+                        + noteBatch.notes().size()
+                        + " parent notes; sequence record mapping not implemented yet."
         ));
 
         return new Zkn3ImportBatch(
@@ -922,6 +1066,12 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
 
     private record ManualLinkResolutionResult(
             List<Zkn3LinkRecord> linkRecords,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
+    }
+
+    private record LuhmannResolutionResult(
+            int resolvedReferenceCount,
             List<Zkn3ImportDiagnostic> diagnostics
     ) {
     }
