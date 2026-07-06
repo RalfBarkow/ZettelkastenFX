@@ -745,13 +745,7 @@ final class Zkn3DomSourceReaderTest {
 
         assertRejectedBatchHasNoRecords(batch);
         assertEquals(2, batch.diagnostics().size());
-        assertDiagnostic(
-                batch,
-                Zkn3DiagnosticSeverity.ERROR,
-                "1",
-                "ts_created",
-                "Missing or malformed ts_created timestamp."
-        );
+        assertTimestampDiagnostic(batch, "1", "ts_created", "bad");
         assertRejectedBatchDiagnostic(batch, source);
     }
 
@@ -1491,13 +1485,7 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(0, batch.notes().size());
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
-        assertDiagnostic(
-                batch,
-                Zkn3DiagnosticSeverity.ERROR,
-                "102",
-                "ts_created",
-                "Missing or malformed ts_created timestamp."
-        );
+        assertTimestampDiagnostic(batch, "102", "ts_created", "bad");
         assertRejectedBatchDiagnostic(batch, source);
     }
 
@@ -1528,13 +1516,7 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(0, batch.notes().size());
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
-        assertDiagnostic(
-                batch,
-                Zkn3DiagnosticSeverity.ERROR,
-                "103",
-                "ts_edited",
-                "Missing or malformed ts_edited timestamp."
-        );
+        assertTimestampDiagnostic(batch, "103", "ts_edited", "");
         assertRejectedBatchDiagnostic(batch, source);
     }
 
@@ -1565,13 +1547,7 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(0, batch.notes().size());
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
-        assertDiagnostic(
-                batch,
-                Zkn3DiagnosticSeverity.ERROR,
-                "104",
-                "ts_edited",
-                "Missing or malformed ts_edited timestamp."
-        );
+        assertTimestampDiagnostic(batch, "104", "ts_edited", "bad");
         assertRejectedBatchDiagnostic(batch, source);
     }
 
@@ -2115,6 +2091,35 @@ final class Zkn3DomSourceReaderTest {
                         + message
                         + " in "
                         + batch.diagnostics()
+        );
+    }
+
+    private static void assertTimestampDiagnostic(
+            Zkn3ImportBatch batch,
+            String sourceId,
+            String field,
+            String rawValue
+    ) {
+        Zkn3ImportDiagnostic diagnostic = batch.diagnostics().stream()
+                .filter(candidate -> Zkn3DiagnosticSeverity.ERROR == candidate.severity()
+                        && sourceId.equals(candidate.sourceId())
+                        && field.equals(candidate.field()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(
+                        "Expected timestamp diagnostic for "
+                                + sourceId
+                                + " "
+                                + field
+                                + " in "
+                                + batch.diagnostics()));
+
+        assertTrue(
+                diagnostic.message().contains("source note '" + sourceId + "'"),
+                "Expected timestamp diagnostic message to include source note id: " + diagnostic.message()
+        );
+        assertTrue(
+                diagnostic.message().contains("raw " + field + "='" + rawValue + "'"),
+                "Expected timestamp diagnostic message to include raw timestamp value: " + diagnostic.message()
         );
     }
 

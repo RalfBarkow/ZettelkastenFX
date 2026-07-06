@@ -54,6 +54,8 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static final String UNSUPPORTED_ATTACHMENT_MESSAGE =
             "ZKN3 attachment or hyperlink metadata is present but no attachment import record exists yet; "
                     + "complete import batch rejected.";
+    private static final String TIMESTAMP_EXPECTATION =
+            "numeric Unix epoch seconds or milliseconds";
 
     @Override
     public Zkn3ImportBatch read(Path zkn3File) throws IOException {
@@ -895,24 +897,26 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             return new NoteExtractionResult(Optional.empty(), true);
         }
 
-        Optional<Instant> createdAt = parseTimestamp(zettel.getAttribute("ts_created"));
+        String rawCreatedAt = zettel.getAttribute("ts_created");
+        Optional<Instant> createdAt = parseTimestamp(rawCreatedAt);
         if (createdAt.isEmpty()) {
             diagnostics.add(new Zkn3ImportDiagnostic(
                     Zkn3DiagnosticSeverity.ERROR,
                     sourceId,
                     "ts_created",
-                    "Missing or malformed ts_created timestamp."
+                    invalidTimestampMessage("created", "ts_created", rawCreatedAt, sourceId)
             ));
             return new NoteExtractionResult(Optional.empty(), true);
         }
 
-        Optional<Instant> modifiedAt = parseTimestamp(zettel.getAttribute("ts_edited"));
+        String rawModifiedAt = zettel.getAttribute("ts_edited");
+        Optional<Instant> modifiedAt = parseTimestamp(rawModifiedAt);
         if (modifiedAt.isEmpty()) {
             diagnostics.add(new Zkn3ImportDiagnostic(
                     Zkn3DiagnosticSeverity.ERROR,
                     sourceId,
                     "ts_edited",
-                    "Missing or malformed ts_edited timestamp."
+                    invalidTimestampMessage("edited", "ts_edited", rawModifiedAt, sourceId)
             ));
             return new NoteExtractionResult(Optional.empty(), true);
         }
@@ -988,6 +992,25 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         } catch (NumberFormatException | DateTimeException e) {
             return Optional.empty();
         }
+    }
+
+    private static String invalidTimestampMessage(
+            String timestampName,
+            String fieldName,
+            String rawValue,
+            String sourceId
+    ) {
+        return "Invalid "
+                + timestampName
+                + " timestamp for source note '"
+                + sourceId
+                + "': raw "
+                + fieldName
+                + "='"
+                + (rawValue == null ? "" : rawValue)
+                + "'; expected "
+                + TIMESTAMP_EXPECTATION
+                + ".";
     }
 
     private static RatingParseResult parseRating(String value) {

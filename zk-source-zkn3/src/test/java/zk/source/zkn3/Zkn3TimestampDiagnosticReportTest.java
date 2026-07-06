@@ -28,6 +28,7 @@ final class Zkn3TimestampDiagnosticReportTest {
     private static final int SAMPLE_LIMIT = 10;
     private static final Set<String> TIMESTAMP_FIELDS = Set.of("ts_created", "ts_edited");
     private static final Pattern QUOTED_VALUE = Pattern.compile("'([^']*)'");
+    private static final Pattern RAW_TIMESTAMP_VALUE = Pattern.compile("raw ts_(?:created|edited)='([^']*)'");
 
     @Test
     void reportsTimestampDiagnosticsForRealSourceOnlyWhenOptedIn() throws IOException {
@@ -136,15 +137,22 @@ final class Zkn3TimestampDiagnosticReportTest {
     private static List<String> sampleRawValues(List<Zkn3ImportDiagnostic> diagnostics) {
         List<String> values = new ArrayList<>();
         for (Zkn3ImportDiagnostic diagnostic : diagnostics) {
-            Matcher matcher = QUOTED_VALUE.matcher(diagnostic.message() == null ? "" : diagnostic.message());
+            Matcher matcher = RAW_TIMESTAMP_VALUE.matcher(diagnostic.message() == null ? "" : diagnostic.message());
             while (matcher.find() && values.size() < SAMPLE_LIMIT) {
-                String value = matcher.group(1);
+                String value = displayRawValue(matcher.group(1));
                 if (!values.contains(value)) {
                     values.add(value);
                 }
             }
         }
         return values;
+    }
+
+    private static String displayRawValue(String rawValue) {
+        if (rawValue.isEmpty()) {
+            return "<empty>";
+        }
+        return rawValue;
     }
 
     private static void printReport(
