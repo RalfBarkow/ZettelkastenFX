@@ -45,9 +45,10 @@ final class Zkn3DomSourceReaderTest {
         assertNotNull(batch);
         assertEquals(0, batch.notes().size());
         assertNoRelationRecords(batch);
-        assertEquals(2, batch.diagnostics().size());
+        assertEquals(3, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 0);
         assertKeywordFileShapeDiagnostic(batch, source, 0);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 0);
     }
 
     @Test
@@ -79,9 +80,10 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(Instant.ofEpochSecond(1700003600L), note.modifiedAt());
         assertEquals(OptionalInt.of(4), note.rating());
         assertNoRelationRecords(batch);
-        assertEquals(2, batch.diagnostics().size());
+        assertEquals(3, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 0);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 1);
     }
 
     @Test
@@ -114,9 +116,10 @@ final class Zkn3DomSourceReaderTest {
         assertEquals("2", batch.notes().get(1).sourceId());
         assertEquals(OptionalInt.of(5), batch.notes().get(1).rating());
         assertNoRelationRecords(batch);
-        assertEquals(2, batch.diagnostics().size());
+        assertEquals(3, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 2);
         assertKeywordFileShapeDiagnostic(batch, source, 0);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 2);
     }
 
     @Test
@@ -205,9 +208,10 @@ final class Zkn3DomSourceReaderTest {
 
         assertEquals(1, batch.notes().size());
         assertNoRelationRecords(batch);
-        assertEquals(2, batch.diagnostics().size());
+        assertEquals(3, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 2);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 1);
     }
 
     @Test
@@ -222,9 +226,10 @@ final class Zkn3DomSourceReaderTest {
 
         assertEquals(1, batch.notes().size());
         assertNoRelationRecords(batch);
-        assertEquals(2, batch.diagnostics().size());
+        assertEquals(3, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 1);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 1);
     }
 
     @Test
@@ -249,9 +254,220 @@ final class Zkn3DomSourceReaderTest {
 
         assertEquals(1, batch.notes().size());
         assertNoRelationRecords(batch);
-        assertEquals(2, batch.diagnostics().size());
+        assertEquals(3, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 2);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 1);
+    }
+
+    @Test
+    void readResolvesOneBasedKeywordReferenceWithoutMappingKeywordRecords() throws IOException {
+        Path source = createZip(
+                "keyword-reference-one.zkn3",
+                validZknFileEntryWithKeywords("1"),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(3, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 1);
+        assertKeywordResolutionDiagnostic(batch, source, 1, 1);
+    }
+
+    @Test
+    void readResolvesMultipleKeywordReferencesWithoutMappingKeywordRecords() throws IOException {
+        Path source = createZip(
+                "keyword-reference-two.zkn3",
+                validZknFileEntryWithKeywords("1,2"),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry><entry>beta</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(3, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 2);
+        assertKeywordResolutionDiagnostic(batch, source, 2, 1);
+    }
+
+    @Test
+    void readTrimsWhitespaceAroundKeywordReferenceTokens() throws IOException {
+        Path source = createZip(
+                "keyword-reference-whitespace.zkn3",
+                validZknFileEntryWithKeywords(" 1 , 2 "),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry><entry>beta</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(3, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 2);
+        assertKeywordResolutionDiagnostic(batch, source, 2, 1);
+    }
+
+    @Test
+    void readTreatsBlankKeywordFieldAsNoKeywordReferences() throws IOException {
+        Path source = createZip(
+                "blank-keywords.zkn3",
+                validZknFileEntryWithKeywords("   "),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(3, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 1);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 1);
+    }
+
+    @Test
+    void readDeduplicatesDuplicateKeywordReferenceForDiagnosticCount() throws IOException {
+        Path source = createZip(
+                "duplicate-keyword-reference.zkn3",
+                validZknFileEntryWithKeywords("1,1"),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(3, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 1);
+        assertKeywordResolutionDiagnostic(batch, source, 1, 1);
+    }
+
+    @Test
+    void readRejectsBatchWhenKeywordReferenceTokenIsNotInteger() throws IOException {
+        Path source = createZip(
+                "keyword-token-not-integer.zkn3",
+                validZknFileEntryWithKeywords("abc"),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertNotNull(batch);
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                "1",
+                "keywords",
+                "Invalid keyword index token 'abc'; expected one-based integer reference into keywordFile.xml."
+        );
+        assertImportRejectedBatchDiagnostic(batch, source);
+    }
+
+    @Test
+    void readRejectsBatchWhenKeywordReferenceIsZero() throws IOException {
+        Path source = createZip(
+                "keyword-token-zero.zkn3",
+                validZknFileEntryWithKeywords("0"),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertNotNull(batch);
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                "1",
+                "keywords",
+                "Invalid keyword index 0; keyword indexes are one-based and must be greater than zero."
+        );
+        assertImportRejectedBatchDiagnostic(batch, source);
+    }
+
+    @Test
+    void readRejectsBatchWhenKeywordReferenceIsNegative() throws IOException {
+        Path source = createZip(
+                "keyword-token-negative.zkn3",
+                validZknFileEntryWithKeywords("-1"),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertNotNull(batch);
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                "1",
+                "keywords",
+                "Invalid keyword index -1; keyword indexes are one-based and must be greater than zero."
+        );
+        assertImportRejectedBatchDiagnostic(batch, source);
+    }
+
+    @Test
+    void readRejectsBatchWhenKeywordReferenceIsOutOfRange() throws IOException {
+        Path source = createZip(
+                "keyword-token-out-of-range.zkn3",
+                validZknFileEntryWithKeywords("2"),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertNotNull(batch);
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                "1",
+                "keywords",
+                "Keyword index 2 is out of range for keywordFile.xml with 1 entries."
+        );
+        assertImportRejectedBatchDiagnostic(batch, source);
+    }
+
+    @Test
+    void readRejectsBatchWhenKeywordReferenceResolvesToBlankEntry() throws IOException {
+        Path source = createZip(
+                "keyword-reference-blank-entry.zkn3",
+                validZknFileEntryWithKeywords("1"),
+                zipEntry("keywordFile.xml", "<keywords><entry>   </entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertNotNull(batch);
+        assertEquals(0, batch.notes().size());
+        assertNoRelationRecords(batch);
+        assertEquals(2, batch.diagnostics().size());
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                "1",
+                "keywordFile.xml",
+                "Keyword index 1 resolves to a blank keyword entry."
+        );
+        assertImportRejectedBatchDiagnostic(batch, source);
     }
 
     @Test
@@ -371,6 +587,7 @@ final class Zkn3DomSourceReaderTest {
         );
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 0);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 1);
     }
 
     @Test
@@ -405,6 +622,7 @@ final class Zkn3DomSourceReaderTest {
         );
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 0);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 1);
     }
 
     @Test
@@ -439,6 +657,7 @@ final class Zkn3DomSourceReaderTest {
         );
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 0);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 1);
     }
 
     @Test
@@ -644,6 +863,21 @@ final class Zkn3DomSourceReaderTest {
         );
     }
 
+    private static ZipFixtureEntry validZknFileEntryWithKeywords(String keywords) {
+        return zipEntry(
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                            <title>First</title>
+                            <content>First body</content>
+                            <keywords>%s</keywords>
+                          </zettel>
+                        </zettelkasten>
+                        """.formatted(keywords)
+        );
+    }
+
     private static void assertNoRelationRecords(Zkn3ImportBatch batch) {
         assertEquals(0, batch.keywords().size());
         assertEquals(0, batch.links().size());
@@ -671,6 +905,25 @@ final class Zkn3DomSourceReaderTest {
                 "Validated keywordFile.xml root keywords with "
                         + entryCount
                         + " entry elements; keyword mapping not implemented yet."
+        );
+    }
+
+    private static void assertKeywordResolutionDiagnostic(
+            Zkn3ImportBatch batch,
+            Path source,
+            int referenceCount,
+            int noteCount
+    ) {
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.INFO,
+                source.toString(),
+                "keywords",
+                "Resolved "
+                        + referenceCount
+                        + " keyword references for "
+                        + noteCount
+                        + " notes; keyword record mapping not implemented yet."
         );
     }
 

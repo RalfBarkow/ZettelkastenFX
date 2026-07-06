@@ -19,10 +19,12 @@ import java.nio.file.Path;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import javax.xml.XMLConstants;
@@ -83,7 +85,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                     return rejectedBatchWithMissingKeywordFileDiagnostic(zkn3File);
                 }
 
-                return probeKeywordFileRoot(zkn3File, zipFile, keywordFile, noteBatch);
+                return probeKeywordFileRoot(zkn3File, zipFile, keywordFile, root, noteBatch);
             }
 
             return emptyBatchWithDiagnostic(
@@ -105,6 +107,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             Path zkn3File,
             ZipFile zipFile,
             ZipEntry keywordFile,
+            Element zknRoot,
             Zkn3ImportBatch noteBatch
     ) throws IOException {
         try (InputStream inputStream = zipFile.getInputStream(keywordFile)) {
@@ -129,7 +132,18 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 );
             }
 
-            return noteBatchWithKeywordFileShapeDiagnostic(zkn3File, noteBatch, countKeywordEntries(root));
+            List<String> keywordEntries = keywordEntries(root);
+            KeywordResolutionProbeResult resolution = probeKeywordReferences(zknRoot, keywordEntries);
+            if (!resolution.diagnostics().isEmpty()) {
+                return rejectedBatchWithKeywordReferenceDiagnostics(zkn3File, resolution.diagnostics());
+            }
+
+            return noteBatchWithKeywordFileDiagnostics(
+                    zkn3File,
+                    noteBatch,
+                    keywordEntries.size(),
+                    resolution.resolvedReferenceCount()
+            );
         } catch (ParserConfigurationException | SAXException e) {
             return rejectedBatchWithMalformedKeywordFileDiagnostic(zkn3File, e);
         }
@@ -149,19 +163,131 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         return Optional.empty();
     }
 
-    private static int countKeywordEntries(Element root) {
-        int count = 0;
+    private static List<String> keywordEntries(Element root) {
+        List<String> entries = new ArrayList<>();
         NodeList children = root.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node node = children.item(i);
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 Element element = (Element) node;
                 if (KEYWORD_ENTRY_ELEMENT.equals(element.getTagName())) {
-                    count++;
+                    entries.add(element.getTextContent());
                 }
             }
         }
-        return count;
+        return entries;
+    }
+
+    private static KeywordResolutionProbeResult probeKeywordReferences(Element zknRoot, List<String> keywordEntries) {
+        List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>();
+        int resolvedReferenceCount = 0;
+
+        NodeList children = zknRoot.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+                if (ZETTEL_ELEMENT.equals(element.getTagName())) {
+                    KeywordResolutionProbeResult result = probeZettelKeywordReferences(
+                            element,
+                            keywordEntries
+                    );
+                    diagnostics.addAll(result.diagnostics());
+                    resolvedReferenceCount += result.resolvedReferenceCount();
+                }
+            }
+        }
+
+        return new KeywordResolutionProbeResult(resolvedReferenceCount, diagnostics);
+    }
+
+    private static KeywordResolutionProbeResult probeZettelKeywordReferences(Element zettel, List<String> keywordEntries) {
+        List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>();
+        String sourceId = zettel.getAttribute("zknid").trim();
+        Optional<String> keywords = directChildText(zettel, EXPECTED_KEYWORD_ROOT);
+        if (keywords.isEmpty() || keywords.get().trim().isEmpty()) {
+            return new KeywordResolutionProbeResult(0, diagnostics);
+        }
+
+        Set<String> resolvedKeywords = new LinkedHashSet<>();
+        String[] tokens = keywords.get().split(",");
+        for (String token : tokens) {
+            String trimmed = token.trim();
+            if (!trimmed.isEmpty()) {
+                probeKeywordToken(sourceId, trimmed, keywordEntries, resolvedKeywords, diagnostics);
+            }
+        }
+
+        if (!diagnostics.isEmpty()) {
+            return new KeywordResolutionProbeResult(0, diagnostics);
+        }
+
+        return new KeywordResolutionProbeResult(resolvedKeywords.size(), diagnostics);
+    }
+
+    private static void probeKeywordToken(
+            String sourceId,
+            String token,
+            List<String> keywordEntries,
+            Set<String> resolvedKeywords,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
+        int keywordIndex;
+        try {
+            keywordIndex = Integer.parseInt(token);
+        } catch (NumberFormatException e) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    sourceId,
+                    EXPECTED_KEYWORD_ROOT,
+                    "Invalid keyword index token '"
+                            + token
+                            + "'; expected one-based integer reference into keywordFile.xml."
+            ));
+            return;
+        }
+
+        if (keywordIndex <= 0) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    sourceId,
+                    EXPECTED_KEYWORD_ROOT,
+                    "Invalid keyword index "
+                            + keywordIndex
+                            + "; keyword indexes are one-based and must be greater than zero."
+            ));
+            return;
+        }
+
+        int entryIndex = keywordIndex - 1;
+        if (entryIndex >= keywordEntries.size()) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    sourceId,
+                    EXPECTED_KEYWORD_ROOT,
+                    "Keyword index "
+                            + keywordIndex
+                            + " is out of range for keywordFile.xml with "
+                            + keywordEntries.size()
+                            + " entries."
+            ));
+            return;
+        }
+
+        String keyword = keywordEntries.get(entryIndex);
+        if (keyword.trim().isEmpty()) {
+            diagnostics.add(new Zkn3ImportDiagnostic(
+                    Zkn3DiagnosticSeverity.ERROR,
+                    sourceId,
+                    KEYWORD_FILE_ENTRY,
+                    "Keyword index "
+                            + keywordIndex
+                            + " resolves to a blank keyword entry."
+            ));
+            return;
+        }
+
+        resolvedKeywords.add(keyword);
     }
 
     private static boolean hasErrorDiagnostic(Zkn3ImportBatch batch) {
@@ -239,10 +365,32 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         );
     }
 
-    private static Zkn3ImportBatch noteBatchWithKeywordFileShapeDiagnostic(
+    private static Zkn3ImportBatch rejectedBatchWithKeywordReferenceDiagnostics(
+            Path zkn3File,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
+        List<Zkn3ImportDiagnostic> rejectedDiagnostics = new ArrayList<>(diagnostics);
+        rejectedDiagnostics.add(new Zkn3ImportDiagnostic(
+                Zkn3DiagnosticSeverity.ERROR,
+                zkn3File.toString(),
+                "import",
+                INCOMPLETE_IMPORT_BATCH_MESSAGE
+        ));
+
+        return new Zkn3ImportBatch(
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                rejectedDiagnostics
+        );
+    }
+
+    private static Zkn3ImportBatch noteBatchWithKeywordFileDiagnostics(
             Path zkn3File,
             Zkn3ImportBatch noteBatch,
-            int entryCount
+            int entryCount,
+            int resolvedReferenceCount
     ) {
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>(noteBatch.diagnostics());
         diagnostics.add(new Zkn3ImportDiagnostic(
@@ -252,6 +400,16 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 "Validated keywordFile.xml root keywords with "
                         + entryCount
                         + " entry elements; keyword mapping not implemented yet."
+        ));
+        diagnostics.add(new Zkn3ImportDiagnostic(
+                Zkn3DiagnosticSeverity.INFO,
+                zkn3File.toString(),
+                EXPECTED_KEYWORD_ROOT,
+                "Resolved "
+                        + resolvedReferenceCount
+                        + " keyword references for "
+                        + noteBatch.notes().size()
+                        + " notes; keyword record mapping not implemented yet."
         ));
 
         return new Zkn3ImportBatch(
@@ -501,5 +659,11 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     }
 
     private record NoteExtractionResult(Optional<Zkn3NoteRecord> record, boolean incompleteBatch) {
+    }
+
+    private record KeywordResolutionProbeResult(
+            int resolvedReferenceCount,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
     }
 }
