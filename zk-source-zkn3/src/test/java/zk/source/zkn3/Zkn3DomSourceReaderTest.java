@@ -5,6 +5,7 @@ import org.junit.jupiter.api.io.TempDir;
 import zk.core.importing.Zkn3DiagnosticSeverity;
 import zk.core.importing.Zkn3ImportBatch;
 import zk.core.importing.Zkn3ImportDiagnostic;
+import zk.core.importing.Zkn3KeywordRecord;
 import zk.core.importing.Zkn3NoteRecord;
 import zk.core.ports.Zkn3SourceReader;
 
@@ -189,7 +190,7 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readValidatesKeywordFileEntryShapeWithoutMappingKeywords() throws IOException {
+    void readValidatesKeywordFileEntryShapeWhenNotesHaveNoKeywordReferences() throws IOException {
         Path source = createZip(
                 "keyword-file-entries.zkn3",
                 validZknFileEntry(),
@@ -261,7 +262,7 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readResolvesOneBasedKeywordReferenceWithoutMappingKeywordRecords() throws IOException {
+    void readMapsOneBasedKeywordReferenceToKeywordRecord() throws IOException {
         Path source = createZip(
                 "keyword-reference-one.zkn3",
                 validZknFileEntryWithKeywords("1"),
@@ -271,7 +272,9 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertEquals(1, batch.notes().size());
-        assertNoRelationRecords(batch);
+        assertEquals(1, batch.keywords().size());
+        assertKeywordRecord(batch.keywords().get(0), "1", "alpha");
+        assertNoLinkOrSequenceRecords(batch);
         assertEquals(3, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 1);
@@ -279,7 +282,7 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readResolvesMultipleKeywordReferencesWithoutMappingKeywordRecords() throws IOException {
+    void readMapsMultipleKeywordReferencesInTokenOrder() throws IOException {
         Path source = createZip(
                 "keyword-reference-two.zkn3",
                 validZknFileEntryWithKeywords("1,2"),
@@ -289,11 +292,51 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertEquals(1, batch.notes().size());
-        assertNoRelationRecords(batch);
+        assertEquals(2, batch.keywords().size());
+        assertKeywordRecord(batch.keywords().get(0), "1", "alpha");
+        assertKeywordRecord(batch.keywords().get(1), "1", "beta");
+        assertNoLinkOrSequenceRecords(batch);
         assertEquals(3, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 2);
         assertKeywordResolutionDiagnostic(batch, source, 2, 1);
+    }
+
+    @Test
+    void readMapsSameKeywordForTwoNotesAsTwoAssociations() throws IOException {
+        Path source = createZip(
+                "same-keyword-two-notes.zkn3",
+                zipEntry(
+                        "zknFile.xml",
+                        """
+                                <zettelkasten>
+                                  <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                                    <title>First</title>
+                                    <content>First body</content>
+                                    <keywords>1</keywords>
+                                  </zettel>
+                                  <zettel zknid="2" ts_created="1700000001" ts_edited="1700000101" rating="">
+                                    <title>Second</title>
+                                    <content>Second body</content>
+                                    <keywords>1</keywords>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(2, batch.notes().size());
+        assertEquals(2, batch.keywords().size());
+        assertKeywordRecord(batch.keywords().get(0), "1", "alpha");
+        assertKeywordRecord(batch.keywords().get(1), "2", "alpha");
+        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(3, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 2);
+        assertKeywordFileShapeDiagnostic(batch, source, 1);
+        assertKeywordResolutionDiagnostic(batch, source, 2, 2);
     }
 
     @Test
@@ -307,7 +350,10 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertEquals(1, batch.notes().size());
-        assertNoRelationRecords(batch);
+        assertEquals(2, batch.keywords().size());
+        assertKeywordRecord(batch.keywords().get(0), "1", "alpha");
+        assertKeywordRecord(batch.keywords().get(1), "1", "beta");
+        assertNoLinkOrSequenceRecords(batch);
         assertEquals(3, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 2);
@@ -333,7 +379,7 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readDeduplicatesDuplicateKeywordReferenceForDiagnosticCount() throws IOException {
+    void readDeduplicatesDuplicateKeywordReferenceForSameNote() throws IOException {
         Path source = createZip(
                 "duplicate-keyword-reference.zkn3",
                 validZknFileEntryWithKeywords("1,1"),
@@ -343,10 +389,32 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertEquals(1, batch.notes().size());
-        assertNoRelationRecords(batch);
+        assertEquals(1, batch.keywords().size());
+        assertKeywordRecord(batch.keywords().get(0), "1", "alpha");
+        assertNoLinkOrSequenceRecords(batch);
         assertEquals(3, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 1);
+        assertKeywordResolutionDiagnostic(batch, source, 1, 1);
+    }
+
+    @Test
+    void readDeduplicatesDuplicateKeywordTextFromDifferentEntriesForSameNote() throws IOException {
+        Path source = createZip(
+                "duplicate-keyword-text.zkn3",
+                validZknFileEntryWithKeywords("1,2"),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertEquals(1, batch.keywords().size());
+        assertKeywordRecord(batch.keywords().get(0), "1", "alpha");
+        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(3, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 2);
         assertKeywordResolutionDiagnostic(batch, source, 1, 1);
     }
 
@@ -880,8 +948,17 @@ final class Zkn3DomSourceReaderTest {
 
     private static void assertNoRelationRecords(Zkn3ImportBatch batch) {
         assertEquals(0, batch.keywords().size());
+        assertNoLinkOrSequenceRecords(batch);
+    }
+
+    private static void assertNoLinkOrSequenceRecords(Zkn3ImportBatch batch) {
         assertEquals(0, batch.links().size());
         assertEquals(0, batch.sequences().size());
+    }
+
+    private static void assertKeywordRecord(Zkn3KeywordRecord record, String noteSourceId, String keyword) {
+        assertEquals(noteSourceId, record.noteSourceId());
+        assertEquals(keyword, record.keyword());
     }
 
     private static void assertSummaryDiagnostic(Zkn3ImportBatch batch, Path source, int noteCount) {
@@ -892,7 +969,7 @@ final class Zkn3DomSourceReaderTest {
                 "zettel",
                 "Extracted "
                         + noteCount
-                        + " ZKN3 note records; keyword, link, manual-link, and sequence mapping not implemented yet."
+                        + " ZKN3 note records; link, manual-link, and sequence mapping not implemented yet."
         );
     }
 
@@ -904,14 +981,14 @@ final class Zkn3DomSourceReaderTest {
                 "keywordFile.xml",
                 "Validated keywordFile.xml root keywords with "
                         + entryCount
-                        + " entry elements; keyword mapping not implemented yet."
+                        + " entry elements."
         );
     }
 
     private static void assertKeywordResolutionDiagnostic(
             Zkn3ImportBatch batch,
             Path source,
-            int referenceCount,
+            int keywordRecordCount,
             int noteCount
     ) {
         assertDiagnostic(
@@ -919,11 +996,11 @@ final class Zkn3DomSourceReaderTest {
                 Zkn3DiagnosticSeverity.INFO,
                 source.toString(),
                 "keywords",
-                "Resolved "
-                        + referenceCount
-                        + " keyword references for "
+                "Extracted "
+                        + keywordRecordCount
+                        + " ZKN3 keyword records for "
                         + noteCount
-                        + " notes; keyword record mapping not implemented yet."
+                        + " notes."
         );
     }
 

@@ -3,6 +3,7 @@ package zk.source.zkn3;
 import zk.core.importing.Zkn3DiagnosticSeverity;
 import zk.core.importing.Zkn3ImportBatch;
 import zk.core.importing.Zkn3ImportDiagnostic;
+import zk.core.importing.Zkn3KeywordRecord;
 import zk.core.importing.Zkn3NoteRecord;
 import zk.core.ports.Zkn3SourceReader;
 import org.w3c.dom.Document;
@@ -133,7 +134,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             }
 
             List<String> keywordEntries = keywordEntries(root);
-            KeywordResolutionProbeResult resolution = probeKeywordReferences(zknRoot, keywordEntries);
+            KeywordResolutionResult resolution = resolveKeywordRecords(zknRoot, keywordEntries);
             if (!resolution.diagnostics().isEmpty()) {
                 return rejectedBatchWithKeywordReferenceDiagnostics(zkn3File, resolution.diagnostics());
             }
@@ -142,7 +143,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                     zkn3File,
                     noteBatch,
                     keywordEntries.size(),
-                    resolution.resolvedReferenceCount()
+                    resolution.keywordRecords()
             );
         } catch (ParserConfigurationException | SAXException e) {
             return rejectedBatchWithMalformedKeywordFileDiagnostic(zkn3File, e);
@@ -178,9 +179,9 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         return entries;
     }
 
-    private static KeywordResolutionProbeResult probeKeywordReferences(Element zknRoot, List<String> keywordEntries) {
+    private static KeywordResolutionResult resolveKeywordRecords(Element zknRoot, List<String> keywordEntries) {
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>();
-        int resolvedReferenceCount = 0;
+        List<Zkn3KeywordRecord> keywordRecords = new ArrayList<>();
 
         NodeList children = zknRoot.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
@@ -188,25 +189,29 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 Element element = (Element) node;
                 if (ZETTEL_ELEMENT.equals(element.getTagName())) {
-                    KeywordResolutionProbeResult result = probeZettelKeywordReferences(
+                    KeywordResolutionResult result = resolveZettelKeywordRecords(
                             element,
                             keywordEntries
                     );
                     diagnostics.addAll(result.diagnostics());
-                    resolvedReferenceCount += result.resolvedReferenceCount();
+                    keywordRecords.addAll(result.keywordRecords());
                 }
             }
         }
 
-        return new KeywordResolutionProbeResult(resolvedReferenceCount, diagnostics);
+        if (!diagnostics.isEmpty()) {
+            return new KeywordResolutionResult(List.of(), diagnostics);
+        }
+
+        return new KeywordResolutionResult(keywordRecords, diagnostics);
     }
 
-    private static KeywordResolutionProbeResult probeZettelKeywordReferences(Element zettel, List<String> keywordEntries) {
+    private static KeywordResolutionResult resolveZettelKeywordRecords(Element zettel, List<String> keywordEntries) {
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>();
         String sourceId = zettel.getAttribute("zknid").trim();
         Optional<String> keywords = directChildText(zettel, EXPECTED_KEYWORD_ROOT);
         if (keywords.isEmpty() || keywords.get().trim().isEmpty()) {
-            return new KeywordResolutionProbeResult(0, diagnostics);
+            return new KeywordResolutionResult(List.of(), diagnostics);
         }
 
         Set<String> resolvedKeywords = new LinkedHashSet<>();
@@ -214,18 +219,21 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         for (String token : tokens) {
             String trimmed = token.trim();
             if (!trimmed.isEmpty()) {
-                probeKeywordToken(sourceId, trimmed, keywordEntries, resolvedKeywords, diagnostics);
+                resolveKeywordToken(sourceId, trimmed, keywordEntries, resolvedKeywords, diagnostics);
             }
         }
 
         if (!diagnostics.isEmpty()) {
-            return new KeywordResolutionProbeResult(0, diagnostics);
+            return new KeywordResolutionResult(List.of(), diagnostics);
         }
 
-        return new KeywordResolutionProbeResult(resolvedKeywords.size(), diagnostics);
+        List<Zkn3KeywordRecord> keywordRecords = resolvedKeywords.stream()
+                .map(keyword -> new Zkn3KeywordRecord(sourceId, keyword))
+                .toList();
+        return new KeywordResolutionResult(keywordRecords, diagnostics);
     }
 
-    private static void probeKeywordToken(
+    private static void resolveKeywordToken(
             String sourceId,
             String token,
             List<String> keywordEntries,
@@ -390,7 +398,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             Path zkn3File,
             Zkn3ImportBatch noteBatch,
             int entryCount,
-            int resolvedReferenceCount
+            List<Zkn3KeywordRecord> keywordRecords
     ) {
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>(noteBatch.diagnostics());
         diagnostics.add(new Zkn3ImportDiagnostic(
@@ -399,22 +407,22 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 KEYWORD_FILE_ENTRY,
                 "Validated keywordFile.xml root keywords with "
                         + entryCount
-                        + " entry elements; keyword mapping not implemented yet."
+                        + " entry elements."
         ));
         diagnostics.add(new Zkn3ImportDiagnostic(
                 Zkn3DiagnosticSeverity.INFO,
                 zkn3File.toString(),
                 EXPECTED_KEYWORD_ROOT,
-                "Resolved "
-                        + resolvedReferenceCount
-                        + " keyword references for "
+                "Extracted "
+                        + keywordRecords.size()
+                        + " ZKN3 keyword records for "
                         + noteBatch.notes().size()
-                        + " notes; keyword record mapping not implemented yet."
+                        + " notes."
         ));
 
         return new Zkn3ImportBatch(
                 noteBatch.notes(),
-                List.of(),
+                keywordRecords,
                 List.of(),
                 List.of(),
                 diagnostics
@@ -458,7 +466,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 ZETTEL_ELEMENT,
                 "Extracted "
                         + notes.size()
-                        + " ZKN3 note records; keyword, link, manual-link, and sequence mapping not implemented yet."
+                        + " ZKN3 note records; link, manual-link, and sequence mapping not implemented yet."
         ));
 
         return new Zkn3ImportBatch(notes, List.of(), List.of(), List.of(), diagnostics);
@@ -661,8 +669,8 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private record NoteExtractionResult(Optional<Zkn3NoteRecord> record, boolean incompleteBatch) {
     }
 
-    private record KeywordResolutionProbeResult(
-            int resolvedReferenceCount,
+    private record KeywordResolutionResult(
+            List<Zkn3KeywordRecord> keywordRecords,
             List<Zkn3ImportDiagnostic> diagnostics
     ) {
     }
