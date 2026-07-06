@@ -9,6 +9,7 @@ import zk.core.importing.Zkn3KeywordRecord;
 import zk.core.importing.Zkn3LinkKind;
 import zk.core.importing.Zkn3LinkRecord;
 import zk.core.importing.Zkn3NoteRecord;
+import zk.core.importing.Zkn3SequenceRecord;
 import zk.core.ports.Zkn3SourceReader;
 
 import java.io.IOException;
@@ -755,7 +756,7 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readResolvesOneLuhmannReferenceWithoutCreatingSequenceRecord() throws IOException {
+    void readMapsOneLuhmannReferenceToSequenceRecord() throws IOException {
         Path source = createZip(
                 "luhmann-reference-one.zkn3",
                 validTwoZknFileEntryWithFirstManlinksAndLuhmann(
@@ -771,13 +772,14 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(2, batch.keywords().size());
         assertEquals(1, batch.links().size());
         assertManualLinkRecord(batch.links().get(0), "1", "2");
-        assertEquals(0, batch.sequences().size());
+        assertEquals(1, batch.sequences().size());
+        assertSequenceRecord(batch.sequences().get(0), "1", "2", 0);
         assertEquals(5, batch.diagnostics().size());
-        assertLuhmannResolutionDiagnostic(batch, source, 1, 2);
+        assertLuhmannSequenceRecordDiagnostic(batch, source, 1, 2);
     }
 
     @Test
-    void readResolvesMultipleLuhmannReferencesWithoutCreatingSequenceRecords() throws IOException {
+    void readMapsMultipleLuhmannReferencesToSequenceRecordsInTokenOrder() throws IOException {
         Path source = createZip(
                 "luhmann-reference-two.zkn3",
                 validThreeZknFileEntryWithFirstLuhmann("<luhmann>2,3</luhmann>"),
@@ -788,9 +790,12 @@ final class Zkn3DomSourceReaderTest {
 
         assertEquals(3, batch.notes().size());
         assertEquals(3, batch.keywords().size());
-        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(0, batch.links().size());
+        assertEquals(2, batch.sequences().size());
+        assertSequenceRecord(batch.sequences().get(0), "1", "2", 0);
+        assertSequenceRecord(batch.sequences().get(1), "1", "3", 1);
         assertEquals(5, batch.diagnostics().size());
-        assertLuhmannResolutionDiagnostic(batch, source, 2, 3);
+        assertLuhmannSequenceRecordDiagnostic(batch, source, 2, 3);
     }
 
     @Test
@@ -804,9 +809,12 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertEquals(3, batch.notes().size());
-        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(0, batch.links().size());
+        assertEquals(2, batch.sequences().size());
+        assertSequenceRecord(batch.sequences().get(0), "1", "2", 0);
+        assertSequenceRecord(batch.sequences().get(1), "1", "3", 1);
         assertEquals(5, batch.diagnostics().size());
-        assertLuhmannResolutionDiagnostic(batch, source, 2, 3);
+        assertLuhmannSequenceRecordDiagnostic(batch, source, 2, 3);
     }
 
     @Test
@@ -820,9 +828,11 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertEquals(2, batch.notes().size());
-        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(0, batch.links().size());
+        assertEquals(1, batch.sequences().size());
+        assertSequenceRecord(batch.sequences().get(0), "1", "2", 0);
         assertEquals(5, batch.diagnostics().size());
-        assertLuhmannResolutionDiagnostic(batch, source, 1, 2);
+        assertLuhmannSequenceRecordDiagnostic(batch, source, 1, 2);
     }
 
     @Test
@@ -839,7 +849,7 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(1, batch.keywords().size());
         assertNoLinkOrSequenceRecords(batch);
         assertEquals(5, batch.diagnostics().size());
-        assertLuhmannResolutionDiagnostic(batch, source, 0, 1);
+        assertLuhmannSequenceRecordDiagnostic(batch, source, 0, 1);
     }
 
     @Test
@@ -856,11 +866,11 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(1, batch.keywords().size());
         assertNoLinkOrSequenceRecords(batch);
         assertEquals(5, batch.diagnostics().size());
-        assertLuhmannResolutionDiagnostic(batch, source, 0, 1);
+        assertLuhmannSequenceRecordDiagnostic(batch, source, 0, 1);
     }
 
     @Test
-    void readDeduplicatesDuplicateLuhmannReferenceForDiagnosticCountOnly() throws IOException {
+    void readDeduplicatesDuplicateLuhmannReferenceForSameParentChild() throws IOException {
         Path source = createZip(
                 "duplicate-luhmann.zkn3",
                 validTwoZknFileEntryWithFirstLuhmann("<luhmann>2,2</luhmann>"),
@@ -871,9 +881,34 @@ final class Zkn3DomSourceReaderTest {
 
         assertEquals(2, batch.notes().size());
         assertEquals(2, batch.keywords().size());
-        assertNoLinkOrSequenceRecords(batch);
+        assertEquals(0, batch.links().size());
+        assertEquals(1, batch.sequences().size());
+        assertSequenceRecord(batch.sequences().get(0), "1", "2", 0);
         assertEquals(5, batch.diagnostics().size());
-        assertLuhmannResolutionDiagnostic(batch, source, 1, 2);
+        assertLuhmannSequenceRecordDiagnostic(batch, source, 1, 2);
+    }
+
+    @Test
+    void readPreservesDifferentParentNotesSequencingSameChildNote() throws IOException {
+        Path source = createZip(
+                "luhmann-same-child.zkn3",
+                validThreeZknFileEntryWithFirstAndSecondLuhmann(
+                        "<luhmann>3</luhmann>",
+                        "<luhmann>3</luhmann>"
+                ),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(3, batch.notes().size());
+        assertEquals(3, batch.keywords().size());
+        assertEquals(0, batch.links().size());
+        assertEquals(2, batch.sequences().size());
+        assertSequenceRecord(batch.sequences().get(0), "1", "3", 0);
+        assertSequenceRecord(batch.sequences().get(1), "2", "3", 0);
+        assertEquals(5, batch.diagnostics().size());
+        assertLuhmannSequenceRecordDiagnostic(batch, source, 2, 3);
     }
 
     @Test
@@ -1798,6 +1833,36 @@ final class Zkn3DomSourceReaderTest {
         );
     }
 
+    private static ZipFixtureEntry validThreeZknFileEntryWithFirstAndSecondLuhmann(
+            String firstLuhmannElement,
+            String secondLuhmannElement
+    ) {
+        return zipEntry(
+                "zknFile.xml",
+                """
+                        <zettelkasten>
+                          <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                            <title>First</title>
+                            <content>First body</content>
+                            <keywords>1</keywords>
+                            %s
+                          </zettel>
+                          <zettel zknid="2" ts_created="1700000001" ts_edited="1700000101" rating="">
+                            <title>Second</title>
+                            <content>Second body</content>
+                            <keywords>1</keywords>
+                            %s
+                          </zettel>
+                          <zettel zknid="3" ts_created="1700000002" ts_edited="1700000102" rating="">
+                            <title>Third</title>
+                            <content>Third body</content>
+                            <keywords>1</keywords>
+                          </zettel>
+                        </zettelkasten>
+                        """.formatted(firstLuhmannElement, secondLuhmannElement)
+        );
+    }
+
     private static ZipFixtureEntry validThreeZknFileEntryWithFirstAndSecondManlinks(
             String firstManlinksElement,
             String secondManlinksElement
@@ -1872,6 +1937,17 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(Zkn3LinkKind.MANUAL, record.kind());
     }
 
+    private static void assertSequenceRecord(
+            Zkn3SequenceRecord record,
+            String parentSourceId,
+            String childSourceId,
+            int order
+    ) {
+        assertEquals(parentSourceId, record.parentSourceId());
+        assertEquals(childSourceId, record.childSourceId());
+        assertEquals(order, record.order());
+    }
+
     private static void assertSummaryDiagnostic(Zkn3ImportBatch batch, Path source, int noteCount) {
         assertDiagnostic(
                 batch,
@@ -1880,7 +1956,7 @@ final class Zkn3DomSourceReaderTest {
                 "zettel",
                 "Extracted "
                         + noteCount
-                        + " ZKN3 note records; attachment-link and sequence mapping not implemented yet."
+                        + " ZKN3 note records; attachment-link mapping not implemented yet."
         );
     }
 
@@ -1987,10 +2063,10 @@ final class Zkn3DomSourceReaderTest {
         );
     }
 
-    private static void assertLuhmannResolutionDiagnostic(
+    private static void assertLuhmannSequenceRecordDiagnostic(
             Zkn3ImportBatch batch,
             Path source,
-            int resolvedReferenceCount,
+            int sequenceRecordCount,
             int parentNoteCount
     ) {
         assertDiagnostic(
@@ -1998,11 +2074,11 @@ final class Zkn3DomSourceReaderTest {
                 Zkn3DiagnosticSeverity.INFO,
                 source.toString(),
                 "luhmann",
-                "Resolved "
-                        + resolvedReferenceCount
-                        + " Luhmann sequence references for "
+                "Extracted "
+                        + sequenceRecordCount
+                        + " ZKN3 Luhmann sequence records for "
                         + parentNoteCount
-                        + " parent notes; sequence record mapping not implemented yet."
+                        + " parent notes."
         );
     }
 
