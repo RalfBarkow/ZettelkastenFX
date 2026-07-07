@@ -1060,7 +1060,8 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertRejectedBatchHasNoRecords(batch);
-        assertEquals(2, batch.diagnostics().size());
+        assertEquals(3, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
         assertUnsupportedAttachmentDiagnostic(batch, "1");
         assertImportRejectedBatchDiagnostic(batch, source);
     }
@@ -1076,7 +1077,8 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertRejectedBatchHasNoRecords(batch);
-        assertEquals(2, batch.diagnostics().size());
+        assertEquals(3, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
         assertUnsupportedAttachmentDiagnostic(batch, "1");
         assertImportRejectedBatchDiagnostic(batch, source);
     }
@@ -1109,7 +1111,8 @@ final class Zkn3DomSourceReaderTest {
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertRejectedBatchHasNoRecords(batch);
-        assertEquals(2, batch.diagnostics().size());
+        assertEquals(3, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 2);
         assertUnsupportedAttachmentDiagnostic(batch, "2");
         assertImportRejectedBatchDiagnostic(batch, source);
     }
@@ -1496,18 +1499,14 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readRejectsBatchWhenOneZettelIsMissingEditedTimestamp() throws IOException {
+    void readRejectsBatchWhenOneZettelHasBlankCreatedTimestamp() throws IOException {
         Path source = createZip(
-                "missing-edited.zkn3",
+                "blank-created.zkn3",
                 zipEntry(
                         "zknFile.xml",
                         """
                                 <zettelkasten>
-                                  <zettel zknid="valid" ts_created="1700000000" ts_edited="1700000100" rating="1">
-                                    <title>Valid</title>
-                                    <content>Valid body</content>
-                                  </zettel>
-                                  <zettel zknid="103" ts_created="1700000000" rating="1">
+                                  <zettel zknid="103" ts_created="" ts_edited="1700000100" rating="1">
                                     <title>Title</title>
                                     <content>Body</content>
                                   </zettel>
@@ -1522,8 +1521,78 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(0, batch.notes().size());
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
-        assertTimestampDiagnostic(batch, "103", "ts_edited", "");
+        assertTimestampDiagnostic(batch, "103", "ts_created", "");
         assertRejectedBatchDiagnostic(batch, source);
+    }
+
+    @Test
+    void readAcceptsBlankEditedTimestampByUsingCreatedTimestamp() throws IOException {
+        Path source = createZip(
+                "blank-edited.zkn3",
+                zipEntry(
+                        "zknFile.xml",
+                        """
+                                <zettelkasten>
+                                  <zettel zknid="103" ts_created="1700000000" ts_edited="" rating="1">
+                                    <title>Title</title>
+                                    <content>Body</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "<keywords/>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        Zkn3NoteRecord note = batch.notes().get(0);
+        assertEquals("103", note.sourceId());
+        assertEquals("1700000000", note.rawCreatedTimestamp());
+        assertEquals("", note.rawEditedTimestamp());
+        assertEquals(Instant.ofEpochSecond(1700000000L), note.createdAt());
+        assertEquals(note.createdAt(), note.modifiedAt());
+        assertNoRelationRecords(batch);
+        assertNoErrorDiagnostics(batch);
+        assertBlankEditedTimestampWarning(batch, "103");
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 0);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 1);
+    }
+
+    @Test
+    void readAcceptsMissingEditedTimestampAsBlank() throws IOException {
+        Path source = createZip(
+                "missing-edited.zkn3",
+                zipEntry(
+                        "zknFile.xml",
+                        """
+                                <zettelkasten>
+                                  <zettel zknid="105" ts_created="1700000000" rating="1">
+                                    <title>Title</title>
+                                    <content>Body</content>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "<keywords/>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        Zkn3NoteRecord note = batch.notes().get(0);
+        assertEquals("105", note.sourceId());
+        assertEquals("1700000000", note.rawCreatedTimestamp());
+        assertEquals("", note.rawEditedTimestamp());
+        assertEquals(Instant.ofEpochSecond(1700000000L), note.createdAt());
+        assertEquals(note.createdAt(), note.modifiedAt());
+        assertNoRelationRecords(batch);
+        assertNoErrorDiagnostics(batch);
+        assertBlankEditedTimestampWarning(batch, "105");
+        assertSummaryDiagnostic(batch, source, 1);
+        assertKeywordFileShapeDiagnostic(batch, source, 0);
+        assertKeywordResolutionDiagnostic(batch, source, 0, 1);
     }
 
     @Test
@@ -1538,7 +1607,7 @@ final class Zkn3DomSourceReaderTest {
                                     <title>Valid</title>
                                     <content>Valid body</content>
                                   </zettel>
-                                  <zettel zknid="104" ts_created="1700000000" ts_edited="bad" rating="1">
+                                  <zettel zknid="104" ts_created="1700000000" ts_edited="not-a-timestamp" rating="1">
                                     <title>Title</title>
                                     <content>Body</content>
                                   </zettel>
@@ -1553,7 +1622,7 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(0, batch.notes().size());
         assertNoRelationRecords(batch);
         assertEquals(2, batch.diagnostics().size());
-        assertTimestampDiagnostic(batch, "104", "ts_edited", "bad");
+        assertTimestampDiagnostic(batch, "104", "ts_edited", "not-a-timestamp");
         assertRejectedBatchDiagnostic(batch, source);
     }
 
@@ -1908,6 +1977,14 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(0, batch.sequences().size());
     }
 
+    private static void assertNoErrorDiagnostics(Zkn3ImportBatch batch) {
+        assertTrue(
+                batch.diagnostics().stream()
+                        .noneMatch(diagnostic -> Zkn3DiagnosticSeverity.ERROR == diagnostic.severity()),
+                "Expected no ERROR diagnostics in " + batch.diagnostics()
+        );
+    }
+
     private static void assertKeywordRecord(Zkn3KeywordRecord record, String noteSourceId, String keyword) {
         assertEquals(noteSourceId, record.noteSourceId());
         assertEquals(keyword, record.keyword());
@@ -2126,6 +2203,18 @@ final class Zkn3DomSourceReaderTest {
         assertTrue(
                 diagnostic.message().contains("raw " + field + "='" + rawValue + "'"),
                 "Expected timestamp diagnostic message to include raw timestamp value: " + diagnostic.message()
+        );
+    }
+
+    private static void assertBlankEditedTimestampWarning(Zkn3ImportBatch batch, String sourceId) {
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.WARNING,
+                sourceId,
+                "ts_edited",
+                "Blank edited timestamp for source note '"
+                        + sourceId
+                        + "'; preserving raw ts_edited='' and using created timestamp as modified timestamp."
         );
     }
 

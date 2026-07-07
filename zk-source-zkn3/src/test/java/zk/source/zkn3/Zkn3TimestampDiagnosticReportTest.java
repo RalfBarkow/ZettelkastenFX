@@ -192,12 +192,17 @@ final class Zkn3TimestampDiagnosticReportTest {
                 .append(rawTimestampValuesAvailable && sourceIdsAvailable)
                 .append('\n');
         report.append("  next recommended slice: ")
-                .append(rawTimestampValuesAvailable
-                        ? "implement-zkn3-blank-ts-edited-compatibility"
-                        : "improve-zkn3-timestamp-diagnostics")
+                .append(nextRecommendedSlice(errorCount))
                 .append('\n');
 
         System.out.println(report);
+    }
+
+    private static String nextRecommendedSlice(long errorCount) {
+        if (errorCount == 0) {
+            return "design-zkn3-import-batch-sqlite-application";
+        }
+        return "design-zkn3-source-diagnostic-next-class";
     }
 
     private static void appendTimestampGroups(StringBuilder report, List<DiagnosticGroup> timestampGroups) {

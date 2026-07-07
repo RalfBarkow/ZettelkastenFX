@@ -153,7 +153,11 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
 
             Optional<Zkn3ImportDiagnostic> unsupportedAttachment = firstUnsupportedAttachmentDiagnostic(zknRoot);
             if (unsupportedAttachment.isPresent()) {
-                return rejectedBatchWithUnsupportedAttachmentDiagnostic(zkn3File, unsupportedAttachment.get());
+                return rejectedBatchWithUnsupportedAttachmentDiagnostic(
+                        zkn3File,
+                        noteBatch.diagnostics(),
+                        unsupportedAttachment.get()
+                );
             }
 
             ManualLinkResolutionResult manualLinks = resolveManualLinks(zknRoot);
@@ -718,22 +722,24 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
 
     private static Zkn3ImportBatch rejectedBatchWithUnsupportedAttachmentDiagnostic(
             Path zkn3File,
+            List<Zkn3ImportDiagnostic> priorDiagnostics,
             Zkn3ImportDiagnostic diagnostic
     ) {
+        List<Zkn3ImportDiagnostic> rejectedDiagnostics = new ArrayList<>(priorDiagnostics);
+        rejectedDiagnostics.add(diagnostic);
+        rejectedDiagnostics.add(new Zkn3ImportDiagnostic(
+                Zkn3DiagnosticSeverity.ERROR,
+                zkn3File.toString(),
+                "import",
+                INCOMPLETE_IMPORT_BATCH_MESSAGE
+        ));
+
         return new Zkn3ImportBatch(
                 List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
-                List.of(
-                        diagnostic,
-                        new Zkn3ImportDiagnostic(
-                                Zkn3DiagnosticSeverity.ERROR,
-                                zkn3File.toString(),
-                                "import",
-                                INCOMPLETE_IMPORT_BATCH_MESSAGE
-                        )
-                )
+                rejectedDiagnostics
         );
     }
 
@@ -910,15 +916,29 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         }
 
         String rawModifiedAt = zettel.getAttribute("ts_edited");
-        Optional<Instant> modifiedAt = parseTimestamp(rawModifiedAt);
-        if (modifiedAt.isEmpty()) {
+        String rawEditedTimestamp = rawModifiedAt;
+        Instant modifiedAt;
+        if (rawModifiedAt.trim().isEmpty()) {
+            rawEditedTimestamp = "";
+            modifiedAt = createdAt.get();
             diagnostics.add(new Zkn3ImportDiagnostic(
-                    Zkn3DiagnosticSeverity.ERROR,
+                    Zkn3DiagnosticSeverity.WARNING,
                     sourceId,
                     "ts_edited",
-                    invalidTimestampMessage("edited", "ts_edited", rawModifiedAt, sourceId)
+                    blankEditedTimestampMessage(sourceId)
             ));
-            return new NoteExtractionResult(Optional.empty(), true);
+        } else {
+            Optional<Instant> parsedModifiedAt = parseTimestamp(rawModifiedAt);
+            if (parsedModifiedAt.isEmpty()) {
+                diagnostics.add(new Zkn3ImportDiagnostic(
+                        Zkn3DiagnosticSeverity.ERROR,
+                        sourceId,
+                        "ts_edited",
+                        invalidTimestampMessage("edited", "ts_edited", rawModifiedAt, sourceId)
+                ));
+                return new NoteExtractionResult(Optional.empty(), true);
+            }
+            modifiedAt = parsedModifiedAt.get();
         }
 
         Optional<String> title = directChildText(zettel, "title");
@@ -956,9 +976,9 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 title.orElse(""),
                 content.orElse(""),
                 rawCreatedAt,
-                rawModifiedAt,
+                rawEditedTimestamp,
                 createdAt.get(),
-                modifiedAt.get(),
+                modifiedAt,
                 rating.value()
         );
         return new NoteExtractionResult(Optional.of(record), false);
@@ -1013,6 +1033,12 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 + "'; expected "
                 + TIMESTAMP_EXPECTATION
                 + ".";
+    }
+
+    private static String blankEditedTimestampMessage(String sourceId) {
+        return "Blank edited timestamp for source note '"
+                + sourceId
+                + "'; preserving raw ts_edited='' and using created timestamp as modified timestamp.";
     }
 
     private static RatingParseResult parseRating(String value) {
