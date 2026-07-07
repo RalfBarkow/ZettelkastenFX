@@ -89,6 +89,7 @@ final class Zkn3TimestampDiagnosticReportTest {
         assertEquals(0, batch.keywords().size(), "Rejected real-source batch must not contain keywords.");
         assertEquals(0, batch.links().size(), "Rejected real-source batch must not contain links.");
         assertEquals(0, batch.sequences().size(), "Rejected real-source batch must not contain sequences.");
+        assertEquals(0, batch.attachments().size(), "Rejected real-source batch must not contain attachments.");
     }
 
     private static List<DiagnosticGroup> groupDiagnostics(List<Zkn3ImportDiagnostic> diagnostics) {
@@ -174,6 +175,7 @@ final class Zkn3TimestampDiagnosticReportTest {
         report.append("  keywords=").append(batch.keywords().size()).append('\n');
         report.append("  links=").append(batch.links().size()).append('\n');
         report.append("  sequences=").append(batch.sequences().size()).append('\n');
+        report.append("  attachments=").append(batch.attachments().size()).append('\n');
         report.append("diagnostics:\n");
         report.append("  total=").append(batch.diagnostics().size()).append('\n');
         report.append("  errors=").append(errorCount).append('\n');

@@ -45,6 +45,7 @@ final class Zkn3RealSourceSmokeTest {
             assertEquals(0, batch.keywords().size(), "Rejected real-source batch must not contain keywords.");
             assertEquals(0, batch.links().size(), "Rejected real-source batch must not contain links.");
             assertEquals(0, batch.sequences().size(), "Rejected real-source batch must not contain sequences.");
+            assertEquals(0, batch.attachments().size(), "Rejected real-source batch must not contain attachments.");
         }
     }
 
@@ -85,6 +86,7 @@ final class Zkn3RealSourceSmokeTest {
         System.out.println("keywords=" + batch.keywords().size());
         System.out.println("links=" + batch.links().size());
         System.out.println("sequences=" + batch.sequences().size());
+        System.out.println("attachments=" + batch.attachments().size());
         System.out.println("diagnostics=" + batch.diagnostics().size());
         System.out.println("errors=" + errorCount);
         System.out.println("warnings=" + warningCount);

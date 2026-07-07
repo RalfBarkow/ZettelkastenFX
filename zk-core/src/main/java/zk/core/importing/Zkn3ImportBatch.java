@@ -7,6 +7,7 @@ public record Zkn3ImportBatch(
         List<Zkn3KeywordRecord> keywords,
         List<Zkn3LinkRecord> links,
         List<Zkn3SequenceRecord> sequences,
+        List<Zkn3AttachmentRecord> attachments,
         List<Zkn3ImportDiagnostic> diagnostics
 ) {
     public Zkn3ImportBatch {
@@ -14,6 +15,7 @@ public record Zkn3ImportBatch(
         keywords = List.copyOf(keywords);
         links = List.copyOf(links);
         sequences = List.copyOf(sequences);
+        attachments = List.copyOf(attachments);
         diagnostics = List.copyOf(diagnostics);
     }
 }

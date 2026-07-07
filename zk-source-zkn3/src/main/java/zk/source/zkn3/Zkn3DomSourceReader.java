@@ -635,6 +635,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of(
                         new Zkn3ImportDiagnostic(
                                 Zkn3DiagnosticSeverity.ERROR,
@@ -659,6 +660,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of(
                         new Zkn3ImportDiagnostic(
                                 Zkn3DiagnosticSeverity.ERROR,
@@ -678,6 +680,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
 
     private static Zkn3ImportBatch rejectedBatchWithKeywordFileShapeDiagnostic(Path zkn3File, String message) {
         return new Zkn3ImportBatch(
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -716,6 +719,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 rejectedDiagnostics
         );
     }
@@ -735,6 +739,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         ));
 
         return new Zkn3ImportBatch(
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -760,6 +765,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 rejectedDiagnostics
         );
     }
@@ -777,6 +783,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         ));
 
         return new Zkn3ImportBatch(
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -840,6 +847,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 keywordRecords,
                 manualLinks.linkRecords(),
                 luhmann.sequenceRecords(),
+                List.of(),
                 diagnostics
         );
     }
@@ -872,7 +880,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                     INCOMPLETE_BATCH_MESSAGE
             ));
 
-            return new Zkn3ImportBatch(List.of(), List.of(), List.of(), List.of(), diagnostics);
+            return new Zkn3ImportBatch(List.of(), List.of(), List.of(), List.of(), List.of(), diagnostics);
         }
 
         diagnostics.add(new Zkn3ImportDiagnostic(
@@ -884,7 +892,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                         + " ZKN3 note records; attachment-link mapping not implemented yet."
         ));
 
-        return new Zkn3ImportBatch(notes, List.of(), List.of(), List.of(), diagnostics);
+        return new Zkn3ImportBatch(notes, List.of(), List.of(), List.of(), List.of(), diagnostics);
     }
 
     private static NoteExtractionResult extractNoteRecord(
@@ -1108,6 +1116,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             String message
     ) {
         return new Zkn3ImportBatch(
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),

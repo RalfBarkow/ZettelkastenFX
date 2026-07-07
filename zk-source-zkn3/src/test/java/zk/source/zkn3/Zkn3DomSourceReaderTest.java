@@ -1968,6 +1968,7 @@ final class Zkn3DomSourceReaderTest {
     private static void assertNoLinkOrSequenceRecords(Zkn3ImportBatch batch) {
         assertEquals(0, batch.links().size());
         assertEquals(0, batch.sequences().size());
+        assertEquals(0, batch.attachments().size());
     }
 
     private static void assertRejectedBatchHasNoRecords(Zkn3ImportBatch batch) {
@@ -1975,6 +1976,7 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(0, batch.keywords().size());
         assertEquals(0, batch.links().size());
         assertEquals(0, batch.sequences().size());
+        assertEquals(0, batch.attachments().size());
     }
 
     private static void assertNoErrorDiagnostics(Zkn3ImportBatch batch) {
@@ -2256,6 +2258,7 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(0, batch.keywords().size());
         assertEquals(0, batch.links().size());
         assertEquals(0, batch.sequences().size());
+        assertEquals(0, batch.attachments().size());
         assertEquals(1, batch.diagnostics().size());
 
         Zkn3ImportDiagnostic diagnostic = batch.diagnostics().get(0);
@@ -2277,6 +2280,7 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(0, batch.keywords().size());
         assertEquals(0, batch.links().size());
         assertEquals(0, batch.sequences().size());
+        assertEquals(0, batch.attachments().size());
         assertEquals(1, batch.diagnostics().size());
 
         Zkn3ImportDiagnostic diagnostic = batch.diagnostics().get(0);
