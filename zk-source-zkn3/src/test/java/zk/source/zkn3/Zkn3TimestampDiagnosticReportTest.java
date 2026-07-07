@@ -193,7 +193,7 @@ final class Zkn3TimestampDiagnosticReportTest {
                 .append('\n');
         report.append("  next recommended slice: ")
                 .append(rawTimestampValuesAvailable
-                        ? "design-zkn3-note-raw-timestamp-preservation"
+                        ? "implement-zkn3-blank-ts-edited-compatibility"
                         : "improve-zkn3-timestamp-diagnostics")
                 .append('\n');
 

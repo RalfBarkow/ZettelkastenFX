@@ -19,6 +19,8 @@ final class Zkn3ImportRecordsTest {
                 "09080814571Zettelkasten1",
                 "Title",
                 "Body",
+                "0908081457",
+                "0908081512",
                 createdAt,
                 modifiedAt,
                 OptionalInt.of(3)
@@ -43,11 +45,52 @@ final class Zkn3ImportRecordsTest {
         );
 
         assertEquals(note, batch.notes().get(0));
+        assertEquals("0908081457", note.rawCreatedTimestamp());
+        assertEquals("0908081512", note.rawEditedTimestamp());
+        assertEquals(createdAt, note.createdAt());
+        assertEquals(modifiedAt, note.modifiedAt());
         assertEquals(keyword, batch.keywords().get(0));
         assertEquals(Zkn3LinkKind.NORMAL, batch.links().get(0).kind());
         assertEquals(Zkn3LinkKind.MANUAL, batch.links().get(1).kind());
         assertEquals(sequence, batch.sequences().get(0));
         assertEquals(Zkn3DiagnosticSeverity.WARNING, batch.diagnostics().get(0).severity());
         assertThrows(UnsupportedOperationException.class, () -> batch.notes().add(note));
+    }
+
+    @Test
+    void noteRecordRequiresRawTimestampValues() {
+        Instant createdAt = Instant.parse("2026-07-05T09:00:00Z");
+        Instant modifiedAt = Instant.parse("2026-07-05T09:30:00Z");
+
+        assertThrows(NullPointerException.class, () -> new Zkn3NoteRecord(
+                "09080814571Zettelkasten1",
+                "Title",
+                "Body",
+                null,
+                "0908081512",
+                createdAt,
+                modifiedAt,
+                OptionalInt.empty()
+        ));
+        assertThrows(NullPointerException.class, () -> new Zkn3NoteRecord(
+                "09080814571Zettelkasten1",
+                "Title",
+                "Body",
+                "0908081457",
+                null,
+                createdAt,
+                modifiedAt,
+                OptionalInt.empty()
+        ));
+        assertThrows(IllegalArgumentException.class, () -> new Zkn3NoteRecord(
+                "09080814571Zettelkasten1",
+                "Title",
+                "Body",
+                "",
+                "0908081512",
+                createdAt,
+                modifiedAt,
+                OptionalInt.empty()
+        ));
     }
 }

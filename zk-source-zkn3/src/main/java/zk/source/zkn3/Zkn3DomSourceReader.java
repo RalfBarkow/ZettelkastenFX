@@ -955,6 +955,8 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 sourceId,
                 title.orElse(""),
                 content.orElse(""),
+                rawCreatedAt,
+                rawModifiedAt,
                 createdAt.get(),
                 modifiedAt.get(),
                 rating.value()

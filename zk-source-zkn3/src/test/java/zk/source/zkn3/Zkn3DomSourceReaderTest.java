@@ -80,6 +80,8 @@ final class Zkn3DomSourceReaderTest {
         assertEquals("42", note.sourceId());
         assertEquals("First note", note.title());
         assertEquals("Body & markup [b]raw[/b]", note.body());
+        assertEquals("1700000000000", note.rawCreatedTimestamp());
+        assertEquals("1700003600", note.rawEditedTimestamp());
         assertEquals(Instant.ofEpochMilli(1700000000000L), note.createdAt());
         assertEquals(Instant.ofEpochSecond(1700003600L), note.modifiedAt());
         assertEquals(OptionalInt.of(4), note.rating());
@@ -116,8 +118,12 @@ final class Zkn3DomSourceReaderTest {
 
         assertEquals(2, batch.notes().size());
         assertEquals("1", batch.notes().get(0).sourceId());
+        assertEquals("1700000000", batch.notes().get(0).rawCreatedTimestamp());
+        assertEquals("1700000100", batch.notes().get(0).rawEditedTimestamp());
         assertEquals(OptionalInt.empty(), batch.notes().get(0).rating());
         assertEquals("2", batch.notes().get(1).sourceId());
+        assertEquals("1700000001000", batch.notes().get(1).rawCreatedTimestamp());
+        assertEquals("1700000200000", batch.notes().get(1).rawEditedTimestamp());
         assertEquals(OptionalInt.of(5), batch.notes().get(1).rating());
         assertNoRelationRecords(batch);
         assertEquals(5, batch.diagnostics().size());
