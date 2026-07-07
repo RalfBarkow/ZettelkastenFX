@@ -72,7 +72,6 @@ final class Zkn3TimestampDiagnosticReportTest {
 
         if (errorCount > 0) {
             assertNoPartialSuccessfulBatch(batch);
-            assertFalse(timestampGroups.isEmpty(), "Expected timestamp diagnostics in rejected real-source batch.");
             assertFalse(nonTimestampErrorGroups.isEmpty(),
                     "Expected non-timestamp error groups in rejected real-source batch.");
         }

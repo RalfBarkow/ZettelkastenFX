@@ -2,6 +2,8 @@ package zk.source.zkn3;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import zk.core.importing.Zkn3AttachmentKind;
+import zk.core.importing.Zkn3AttachmentRecord;
 import zk.core.importing.Zkn3DiagnosticSeverity;
 import zk.core.importing.Zkn3ImportBatch;
 import zk.core.importing.Zkn3ImportDiagnostic;
@@ -441,10 +443,11 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(1, batch.keywords().size());
         assertKeywordRecord(batch.keywords().get(0), "1", "alpha");
         assertNoLinkOrSequenceRecords(batch);
-        assertEquals(5, batch.diagnostics().size());
+        assertEquals(6, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
         assertKeywordFileShapeDiagnostic(batch, source, 1);
         assertKeywordResolutionDiagnostic(batch, source, 1, 1);
+        assertBlankAttachmentWarning(batch, "1");
     }
 
     @Test
@@ -1050,41 +1053,179 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readRejectsCompleteBatchWhenLocalFileAttachmentIsPresent() throws IOException {
+    void readMapsFileAttachmentToAttachmentRecord() throws IOException {
         Path source = createZip(
                 "local-file-attachment.zkn3",
-                validZknFileEntryWithKeywordsAndLinks("1", "<links><link>/tmp/example.pdf</link></links>"),
+                validZknFileEntryWithKeywordsAndLinks("1", "<links><link>docs/example.pdf</link></links>"),
                 zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
-        assertRejectedBatchHasNoRecords(batch);
-        assertEquals(3, batch.diagnostics().size());
+        assertEquals(1, batch.notes().size());
+        assertEquals(1, batch.keywords().size());
+        assertNoInternalLinkOrSequenceRecords(batch);
+        assertEquals(1, batch.attachments().size());
+        assertAttachmentRecord(batch.attachments().get(0), "1", "docs/example.pdf", Zkn3AttachmentKind.FILE, 0);
+        assertEquals(5, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 1);
-        assertUnsupportedAttachmentDiagnostic(batch, "1");
-        assertImportRejectedBatchDiagnostic(batch, source);
+        assertNoErrorDiagnostics(batch);
     }
 
     @Test
-    void readRejectsCompleteBatchWhenUrlAttachmentIsPresent() throws IOException {
+    void readMapsUrlAttachmentToAttachmentRecord() throws IOException {
         Path source = createZip(
                 "url-attachment.zkn3",
-                validZknFileEntryWithKeywordsAndLinks("1", "<links><link>https://example.org</link></links>"),
+                validZknFileEntryWithKeywordsAndLinks("1", "<links><link>https://example.org/x</link></links>"),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertEquals(1, batch.keywords().size());
+        assertNoInternalLinkOrSequenceRecords(batch);
+        assertEquals(1, batch.attachments().size());
+        assertAttachmentRecord(batch.attachments().get(0), "1", "https://example.org/x", Zkn3AttachmentKind.URL, 0);
+        assertEquals(5, batch.diagnostics().size());
+        assertSummaryDiagnostic(batch, source, 1);
+        assertNoErrorDiagnostics(batch);
+    }
+
+    @Test
+    void readMapsUnknownAttachmentKindWithoutRejecting() throws IOException {
+        Path source = createZip(
+                "unknown-attachment.zkn3",
+                validZknFileEntryWithKeywordsAndLinks("1", "<links><link>opaque-reference</link></links>"),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertEquals(1, batch.keywords().size());
+        assertNoInternalLinkOrSequenceRecords(batch);
+        assertEquals(1, batch.attachments().size());
+        assertAttachmentRecord(batch.attachments().get(0), "1", "opaque-reference", Zkn3AttachmentKind.UNKNOWN, 0);
+        assertEquals(5, batch.diagnostics().size());
+        assertNoErrorDiagnostics(batch);
+    }
+
+    @Test
+    void readPreservesMultipleAttachmentOrder() throws IOException {
+        Path source = createZip(
+                "multiple-attachments.zkn3",
+                validZknFileEntryWithKeywordsAndLinks(
+                        "1",
+                        """
+                                <links>
+                                  <link>https://example.org/a</link>
+                                  <link>docs/example.pdf</link>
+                                  <link>opaque-reference</link>
+                                </links>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertNoInternalLinkOrSequenceRecords(batch);
+        assertEquals(3, batch.attachments().size());
+        assertAttachmentRecord(batch.attachments().get(0), "1", "https://example.org/a", Zkn3AttachmentKind.URL, 0);
+        assertAttachmentRecord(batch.attachments().get(1), "1", "docs/example.pdf", Zkn3AttachmentKind.FILE, 1);
+        assertAttachmentRecord(batch.attachments().get(2), "1", "opaque-reference", Zkn3AttachmentKind.UNKNOWN, 2);
+        assertNoErrorDiagnostics(batch);
+    }
+
+    @Test
+    void readMapsMixedBlankAndNonblankAttachments() throws IOException {
+        Path source = createZip(
+                "mixed-attachments.zkn3",
+                validZknFileEntryWithKeywordsAndLinks(
+                        "1",
+                        """
+                                <links>
+                                  <link>   </link>
+                                  <link>https://example.org/a</link>
+                                  <link>docs/example.pdf</link>
+                                </links>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(1, batch.notes().size());
+        assertNoInternalLinkOrSequenceRecords(batch);
+        assertEquals(2, batch.attachments().size());
+        assertAttachmentRecord(batch.attachments().get(0), "1", "https://example.org/a", Zkn3AttachmentKind.URL, 0);
+        assertAttachmentRecord(batch.attachments().get(1), "1", "docs/example.pdf", Zkn3AttachmentKind.FILE, 1);
+        assertBlankAttachmentWarning(batch, "1");
+        assertNoErrorDiagnostics(batch);
+    }
+
+    @Test
+    void readKeepsLinksLinkSeparateFromManualLinkRecords() throws IOException {
+        Path source = createZip(
+                "manual-and-attachment-link.zkn3",
+                zipEntry(
+                        "zknFile.xml",
+                        """
+                                <zettelkasten>
+                                  <zettel zknid="1" ts_created="1700000000" ts_edited="1700000100" rating="">
+                                    <title>First</title>
+                                    <content>First body</content>
+                                    <keywords>1</keywords>
+                                    <manlinks>2</manlinks>
+                                    <links><link>https://example.org/a</link></links>
+                                  </zettel>
+                                  <zettel zknid="2" ts_created="1700000001" ts_edited="1700000101" rating="">
+                                    <title>Second</title>
+                                    <content>Second body</content>
+                                    <keywords>1</keywords>
+                                  </zettel>
+                                </zettelkasten>
+                                """
+                ),
+                zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
+        );
+
+        Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
+
+        assertEquals(2, batch.notes().size());
+        assertEquals(1, batch.links().size());
+        assertManualLinkRecord(batch.links().get(0), "1", "2");
+        assertEquals(1, batch.attachments().size());
+        assertAttachmentRecord(batch.attachments().get(0), "1", "https://example.org/a", Zkn3AttachmentKind.URL, 0);
+        assertNoErrorDiagnostics(batch);
+    }
+
+    @Test
+    void readRejectsUnrelatedErrorWithNoAttachmentRecords() throws IOException {
+        Path source = createZip(
+                "attachment-with-invalid-keyword.zkn3",
+                validZknFileEntryWithKeywordsAndLinks("2", "<links><link>https://example.org/a</link></links>"),
                 zipEntry("keywordFile.xml", "<keywords><entry>alpha</entry></keywords>")
         );
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
         assertRejectedBatchHasNoRecords(batch);
-        assertEquals(3, batch.diagnostics().size());
-        assertSummaryDiagnostic(batch, source, 1);
-        assertUnsupportedAttachmentDiagnostic(batch, "1");
         assertImportRejectedBatchDiagnostic(batch, source);
+        assertDiagnostic(
+                batch,
+                Zkn3DiagnosticSeverity.ERROR,
+                "1",
+                "keywords",
+                "Keyword index 2 is out of range for keywordFile.xml with 1 entries."
+        );
     }
 
     @Test
-    void readRejectsCompleteBatchWhenOneOfTwoNotesHasAttachmentMetadata() throws IOException {
+    void readMapsOneOfTwoNotesAttachmentMetadata() throws IOException {
         Path source = createZip(
                 "one-of-two-notes-with-attachment.zkn3",
                 zipEntry(
@@ -1110,11 +1251,14 @@ final class Zkn3DomSourceReaderTest {
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
-        assertRejectedBatchHasNoRecords(batch);
-        assertEquals(3, batch.diagnostics().size());
+        assertEquals(2, batch.notes().size());
+        assertEquals(2, batch.keywords().size());
+        assertNoInternalLinkOrSequenceRecords(batch);
+        assertEquals(1, batch.attachments().size());
+        assertAttachmentRecord(batch.attachments().get(0), "2", "/tmp/example.pdf", Zkn3AttachmentKind.FILE, 0);
+        assertEquals(5, batch.diagnostics().size());
         assertSummaryDiagnostic(batch, source, 2);
-        assertUnsupportedAttachmentDiagnostic(batch, "2");
-        assertImportRejectedBatchDiagnostic(batch, source);
+        assertNoErrorDiagnostics(batch);
     }
 
     @Test
@@ -1965,9 +2109,13 @@ final class Zkn3DomSourceReaderTest {
         assertNoLinkOrSequenceRecords(batch);
     }
 
-    private static void assertNoLinkOrSequenceRecords(Zkn3ImportBatch batch) {
+    private static void assertNoInternalLinkOrSequenceRecords(Zkn3ImportBatch batch) {
         assertEquals(0, batch.links().size());
         assertEquals(0, batch.sequences().size());
+    }
+
+    private static void assertNoLinkOrSequenceRecords(Zkn3ImportBatch batch) {
+        assertNoInternalLinkOrSequenceRecords(batch);
         assertEquals(0, batch.attachments().size());
     }
 
@@ -2009,6 +2157,19 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(order, record.order());
     }
 
+    private static void assertAttachmentRecord(
+            Zkn3AttachmentRecord record,
+            String sourceNoteId,
+            String rawValue,
+            Zkn3AttachmentKind kind,
+            int order
+    ) {
+        assertEquals(sourceNoteId, record.sourceNoteId());
+        assertEquals(rawValue, record.rawValue());
+        assertEquals(kind, record.kind());
+        assertEquals(order, record.order());
+    }
+
     private static void assertSummaryDiagnostic(Zkn3ImportBatch batch, Path source, int noteCount) {
         assertDiagnostic(
                 batch,
@@ -2017,7 +2178,7 @@ final class Zkn3DomSourceReaderTest {
                 "zettel",
                 "Extracted "
                         + noteCount
-                        + " ZKN3 note records; attachment-link mapping not implemented yet."
+                        + " ZKN3 note records."
         );
     }
 
@@ -2094,14 +2255,15 @@ final class Zkn3DomSourceReaderTest {
         );
     }
 
-    private static void assertUnsupportedAttachmentDiagnostic(Zkn3ImportBatch batch, String sourceId) {
+    private static void assertBlankAttachmentWarning(Zkn3ImportBatch batch, String sourceId) {
         assertDiagnostic(
                 batch,
-                Zkn3DiagnosticSeverity.ERROR,
+                Zkn3DiagnosticSeverity.WARNING,
                 sourceId,
                 "links/link",
-                "ZKN3 attachment or hyperlink metadata is present but no attachment import record exists yet; "
-                        + "complete import batch rejected."
+                "Blank attachment value for source note '"
+                        + sourceId
+                        + "'; ignoring blank links/link entry."
         );
     }
 

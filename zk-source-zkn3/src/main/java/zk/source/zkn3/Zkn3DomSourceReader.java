@@ -1,6 +1,8 @@
 package zk.source.zkn3;
 
 import zk.core.importing.Zkn3DiagnosticSeverity;
+import zk.core.importing.Zkn3AttachmentKind;
+import zk.core.importing.Zkn3AttachmentRecord;
 import zk.core.importing.Zkn3ImportBatch;
 import zk.core.importing.Zkn3ImportDiagnostic;
 import zk.core.importing.Zkn3KeywordRecord;
@@ -19,6 +21,8 @@ import org.xml.sax.SAXParseException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.time.DateTimeException;
 import java.time.Instant;
@@ -51,9 +55,6 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             "ZKN3 note batch is incomplete and rejected; no note records extracted.";
     private static final String INCOMPLETE_IMPORT_BATCH_MESSAGE =
             "ZKN3 import batch is incomplete and rejected.";
-    private static final String UNSUPPORTED_ATTACHMENT_MESSAGE =
-            "ZKN3 attachment or hyperlink metadata is present but no attachment import record exists yet; "
-                    + "complete import batch rejected.";
     private static final String TIMESTAMP_EXPECTATION =
             "numeric Unix epoch seconds or milliseconds";
 
@@ -151,14 +152,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 return rejectedBatchWithKeywordReferenceDiagnostics(zkn3File, resolution.diagnostics());
             }
 
-            Optional<Zkn3ImportDiagnostic> unsupportedAttachment = firstUnsupportedAttachmentDiagnostic(zknRoot);
-            if (unsupportedAttachment.isPresent()) {
-                return rejectedBatchWithUnsupportedAttachmentDiagnostic(
-                        zkn3File,
-                        noteBatch.diagnostics(),
-                        unsupportedAttachment.get()
-                );
-            }
+            AttachmentResolutionResult attachments = resolveAttachmentRecords(zknRoot);
 
             ManualLinkResolutionResult manualLinks = resolveManualLinks(zknRoot);
             if (hasErrorDiagnostic(manualLinks.diagnostics())) {
@@ -175,6 +169,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                     noteBatch,
                     keywordEntries.size(),
                     resolution.keywordRecords(),
+                    attachments,
                     manualLinks,
                     luhmann
             );
@@ -504,56 +499,6 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         return firstResolvedReference;
     }
 
-    private static Optional<Zkn3ImportDiagnostic> firstUnsupportedAttachmentDiagnostic(Element zknRoot) {
-        NodeList children = zknRoot.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node node = children.item(i);
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-                if (ZETTEL_ELEMENT.equals(element.getTagName())) {
-                    Optional<Zkn3ImportDiagnostic> diagnostic = unsupportedAttachmentDiagnostic(element);
-                    if (diagnostic.isPresent()) {
-                        return diagnostic;
-                    }
-                }
-            }
-        }
-        return Optional.empty();
-    }
-
-    private static Optional<Zkn3ImportDiagnostic> unsupportedAttachmentDiagnostic(Element zettel) {
-        NodeList children = zettel.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node node = children.item(i);
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-                if (LINKS_ELEMENT.equals(element.getTagName()) && hasNonblankLinkChild(element)) {
-                    return Optional.of(new Zkn3ImportDiagnostic(
-                            Zkn3DiagnosticSeverity.ERROR,
-                            zettel.getAttribute("zknid").trim(),
-                            LINKS_ELEMENT + "/" + LINK_ELEMENT,
-                            UNSUPPORTED_ATTACHMENT_MESSAGE
-                    ));
-                }
-            }
-        }
-        return Optional.empty();
-    }
-
-    private static boolean hasNonblankLinkChild(Element links) {
-        NodeList children = links.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node node = children.item(i);
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-                if (LINK_ELEMENT.equals(element.getTagName()) && !element.getTextContent().trim().isEmpty()) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     private static void resolveKeywordToken(
             String sourceId,
             String token,
@@ -724,30 +669,6 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         );
     }
 
-    private static Zkn3ImportBatch rejectedBatchWithUnsupportedAttachmentDiagnostic(
-            Path zkn3File,
-            List<Zkn3ImportDiagnostic> priorDiagnostics,
-            Zkn3ImportDiagnostic diagnostic
-    ) {
-        List<Zkn3ImportDiagnostic> rejectedDiagnostics = new ArrayList<>(priorDiagnostics);
-        rejectedDiagnostics.add(diagnostic);
-        rejectedDiagnostics.add(new Zkn3ImportDiagnostic(
-                Zkn3DiagnosticSeverity.ERROR,
-                zkn3File.toString(),
-                "import",
-                INCOMPLETE_IMPORT_BATCH_MESSAGE
-        ));
-
-        return new Zkn3ImportBatch(
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of(),
-                rejectedDiagnostics
-        );
-    }
-
     private static Zkn3ImportBatch rejectedBatchWithManualLinkDiagnostics(
             Path zkn3File,
             List<Zkn3ImportDiagnostic> diagnostics
@@ -797,6 +718,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             Zkn3ImportBatch noteBatch,
             int entryCount,
             List<Zkn3KeywordRecord> keywordRecords,
+            AttachmentResolutionResult attachments,
             ManualLinkResolutionResult manualLinks,
             LuhmannResolutionResult luhmann
     ) {
@@ -819,6 +741,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                         + noteBatch.notes().size()
                         + " notes."
         ));
+        diagnostics.addAll(attachments.diagnostics());
         diagnostics.addAll(manualLinks.diagnostics());
         diagnostics.add(new Zkn3ImportDiagnostic(
                 Zkn3DiagnosticSeverity.INFO,
@@ -847,7 +770,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 keywordRecords,
                 manualLinks.linkRecords(),
                 luhmann.sequenceRecords(),
-                List.of(),
+                attachments.attachmentRecords(),
                 diagnostics
         );
     }
@@ -889,7 +812,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 ZETTEL_ELEMENT,
                 "Extracted "
                         + notes.size()
-                        + " ZKN3 note records; attachment-link mapping not implemented yet."
+                        + " ZKN3 note records."
         ));
 
         return new Zkn3ImportBatch(notes, List.of(), List.of(), List.of(), List.of(), diagnostics);
@@ -993,17 +916,104 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     }
 
     private static Optional<String> directChildText(Element parent, String childName) {
+        return directChildElement(parent, childName).map(Element::getTextContent);
+    }
+
+    private static Optional<Element> directChildElement(Element parent, String childName) {
         NodeList children = parent.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node node = children.item(i);
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 Element element = (Element) node;
                 if (childName.equals(element.getTagName())) {
-                    return Optional.of(element.getTextContent());
+                    return Optional.of(element);
                 }
             }
         }
         return Optional.empty();
+    }
+
+    private static AttachmentResolutionResult resolveAttachmentRecords(Element zknRoot) {
+        List<Zkn3AttachmentRecord> attachmentRecords = new ArrayList<>();
+        List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>();
+
+        for (Element zettel : zettelElements(zknRoot)) {
+            resolveZettelAttachmentRecords(zettel, attachmentRecords, diagnostics);
+        }
+
+        return new AttachmentResolutionResult(attachmentRecords, diagnostics);
+    }
+
+    private static void resolveZettelAttachmentRecords(
+            Element zettel,
+            List<Zkn3AttachmentRecord> attachmentRecords,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
+        String sourceId = zettel.getAttribute("zknid").trim();
+        Optional<Element> links = directChildElement(zettel, LINKS_ELEMENT);
+        if (links.isEmpty()) {
+            return;
+        }
+
+        NodeList children = links.get().getChildNodes();
+        int order = 0;
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+                if (LINK_ELEMENT.equals(element.getTagName())) {
+                    String rawValue = element.getTextContent();
+                    if (rawValue.trim().isEmpty()) {
+                        diagnostics.add(new Zkn3ImportDiagnostic(
+                                Zkn3DiagnosticSeverity.WARNING,
+                                sourceId,
+                                LINKS_ELEMENT + "/" + LINK_ELEMENT,
+                                "Blank attachment value for source note '"
+                                        + sourceId
+                                        + "'; ignoring blank links/link entry."
+                        ));
+                    } else {
+                        attachmentRecords.add(new Zkn3AttachmentRecord(
+                                sourceId,
+                                rawValue,
+                                classifyAttachmentKind(rawValue),
+                                order
+                        ));
+                        order++;
+                    }
+                }
+            }
+        }
+    }
+
+    private static Zkn3AttachmentKind classifyAttachmentKind(String rawValue) {
+        String value = rawValue.trim();
+        if (hasUriScheme(value)) {
+            return Zkn3AttachmentKind.URL;
+        }
+        if (looksLikeFileReference(value)) {
+            return Zkn3AttachmentKind.FILE;
+        }
+        return Zkn3AttachmentKind.UNKNOWN;
+    }
+
+    private static boolean hasUriScheme(String value) {
+        try {
+            URI uri = new URI(value);
+            String scheme = uri.getScheme();
+            return scheme != null && !scheme.isBlank() && scheme.length() > 1;
+        } catch (URISyntaxException e) {
+            return false;
+        }
+    }
+
+    private static boolean looksLikeFileReference(String value) {
+        return value.contains("/")
+                || value.contains("\\")
+                || value.contains(".")
+                || value.startsWith("~")
+                || value.startsWith("./")
+                || value.startsWith("../");
     }
 
     private static Optional<Instant> parseTimestamp(String value) {
@@ -1138,6 +1148,12 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
 
     private record KeywordResolutionResult(
             List<Zkn3KeywordRecord> keywordRecords,
+            List<Zkn3ImportDiagnostic> diagnostics
+    ) {
+    }
+
+    private record AttachmentResolutionResult(
+            List<Zkn3AttachmentRecord> attachmentRecords,
             List<Zkn3ImportDiagnostic> diagnostics
     ) {
     }
