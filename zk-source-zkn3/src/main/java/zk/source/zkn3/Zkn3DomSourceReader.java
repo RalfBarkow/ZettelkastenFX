@@ -1,4 +1,7 @@
 package zk.source.zkn3;
+import zk.core.importing.Zkn3UnresolvedReferenceRecord;
+import zk.core.importing.Zkn3UnresolvedReferenceReason;
+import zk.core.importing.Zkn3UnresolvedReferenceKind;
 
 import zk.core.importing.Zkn3DiagnosticSeverity;
 import zk.core.importing.Zkn3AttachmentKind;
@@ -265,6 +268,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
         List<Element> zettels = zettelElements(zknRoot);
         List<Zkn3ImportDiagnostic> diagnostics = new ArrayList<>();
         Set<Zkn3LinkRecord> resolvedLinks = new LinkedHashSet<>();
+        List<Zkn3UnresolvedReferenceRecord> unresolvedReferences = new ArrayList<>();
 
         for (Element source : zettels) {
             String sourceId = source.getAttribute("zknid").trim();
@@ -274,19 +278,29 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
             }
 
             String[] tokens = manlinks.get().split(",");
+            int manualLinkOrder = 0;
             for (String token : tokens) {
                 String trimmed = token.trim();
                 if (!trimmed.isEmpty()) {
-                    resolveManualLinkToken(sourceId, trimmed, zettels, resolvedLinks, diagnostics);
+                    resolveManualLinkToken(
+                            sourceId,
+                            trimmed,
+                            manualLinkOrder,
+                            zettels,
+                            resolvedLinks,
+                            unresolvedReferences,
+                            diagnostics
+                    );
+                    manualLinkOrder++;
                 }
             }
         }
 
         if (diagnostics.stream().anyMatch(diagnostic -> Zkn3DiagnosticSeverity.ERROR == diagnostic.severity())) {
-            return new ManualLinkResolutionResult(List.of(), diagnostics);
+            return new ManualLinkResolutionResult(List.of(), List.of(), diagnostics);
         }
 
-        return new ManualLinkResolutionResult(new ArrayList<>(resolvedLinks), diagnostics);
+        return new ManualLinkResolutionResult(new ArrayList<>(resolvedLinks), unresolvedReferences, diagnostics);
     }
 
     private static LuhmannResolutionResult resolveLuhmannSequences(Element zknRoot) {
@@ -345,8 +359,10 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
     private static void resolveManualLinkToken(
             String sourceId,
             String token,
+            int manualLinkOrder,
             List<Element> zettels,
             Set<Zkn3LinkRecord> resolvedLinks,
+            List<Zkn3UnresolvedReferenceRecord> unresolvedReferences,
             List<Zkn3ImportDiagnostic> diagnostics
     ) {
         int manualLinkIndex;
@@ -378,15 +394,23 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
 
         int targetIndex = manualLinkIndex - 1;
         if (targetIndex >= zettels.size()) {
+            unresolvedReferences.add(new Zkn3UnresolvedReferenceRecord(
+                    sourceId,
+                    MANLINKS_ELEMENT,
+                    token,
+                    Zkn3UnresolvedReferenceKind.MANUAL_LINK,
+                    Zkn3UnresolvedReferenceReason.OUT_OF_RANGE,
+                    manualLinkOrder
+            ));
             diagnostics.add(new Zkn3ImportDiagnostic(
-                    Zkn3DiagnosticSeverity.ERROR,
+                    Zkn3DiagnosticSeverity.WARNING,
                     sourceId,
                     MANLINKS_ELEMENT,
                     "Manual link index "
                             + manualLinkIndex
                             + " is out of range for zknFile.xml with "
                             + zettels.size()
-                            + " zettel entries."
+                            + " zettel entries; preserving unresolved manual link reference."
             ));
             return;
         }
@@ -771,7 +795,8 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
                 manualLinks.linkRecords(),
                 luhmann.sequenceRecords(),
                 attachments.attachmentRecords(),
-                diagnostics
+                diagnostics,
+                manualLinks.unresolvedReferences()
         );
     }
 
@@ -1160,6 +1185,7 @@ public final class Zkn3DomSourceReader implements Zkn3SourceReader {
 
     private record ManualLinkResolutionResult(
             List<Zkn3LinkRecord> linkRecords,
+            List<Zkn3UnresolvedReferenceRecord> unresolvedReferences,
             List<Zkn3ImportDiagnostic> diagnostics
     ) {
     }

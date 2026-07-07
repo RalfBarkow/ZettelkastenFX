@@ -1,4 +1,7 @@
 package zk.source.zkn3;
+import zk.core.importing.Zkn3UnresolvedReferenceRecord;
+import zk.core.importing.Zkn3UnresolvedReferenceReason;
+import zk.core.importing.Zkn3UnresolvedReferenceKind;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -644,7 +647,7 @@ final class Zkn3DomSourceReaderTest {
     }
 
     @Test
-    void readRejectsCompleteBatchWhenManualLinkIndexIsOutOfRange() throws IOException {
+    void readPreservesOutOfRangeManualLinkAsUnresolvedReference() throws IOException {
         Path source = createZip(
                 "manual-link-token-out-of-range.zkn3",
                 validTwoZknFileEntryWithFirstManlinks("<manlinks>3</manlinks>"),
@@ -653,16 +656,23 @@ final class Zkn3DomSourceReaderTest {
 
         Zkn3ImportBatch batch = new Zkn3DomSourceReader().read(source);
 
-        assertRejectedBatchHasNoRecords(batch);
-        assertEquals(2, batch.diagnostics().size());
+        assertEquals(2, batch.notes().size());
+        assertEquals(2, batch.keywords().size());
+        assertEquals(0, batch.links().size());
+        assertEquals(0, batch.sequences().size());
+        assertEquals(0, batch.attachments().size());
+        assertEquals(1, batch.unresolvedReferences().size());
+        assertUnresolvedManualLink(batch.unresolvedReferences().get(0), "1", "3", 0);
+        assertEquals(6, batch.diagnostics().size());
         assertDiagnostic(
                 batch,
-                Zkn3DiagnosticSeverity.ERROR,
+                Zkn3DiagnosticSeverity.WARNING,
                 "1",
                 "manlinks",
-                "Manual link index 3 is out of range for zknFile.xml with 2 zettel entries."
+                "Manual link index 3 is out of range for zknFile.xml with 2 zettel entries; preserving unresolved manual link reference."
         );
-        assertImportRejectedBatchDiagnostic(batch, source);
+        assertNoErrorDiagnostics(batch);
+        assertManualLinkRecordDiagnostic(batch, source, 0, 2);
     }
 
     @Test
@@ -2125,6 +2135,7 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(0, batch.links().size());
         assertEquals(0, batch.sequences().size());
         assertEquals(0, batch.attachments().size());
+        assertEquals(0, batch.unresolvedReferences().size());
     }
 
     private static void assertNoErrorDiagnostics(Zkn3ImportBatch batch) {
@@ -2144,6 +2155,20 @@ final class Zkn3DomSourceReaderTest {
         assertEquals(fromSourceId, record.fromSourceId());
         assertEquals(toSourceId, record.toSourceId());
         assertEquals(Zkn3LinkKind.MANUAL, record.kind());
+    }
+
+    private static void assertUnresolvedManualLink(
+            Zkn3UnresolvedReferenceRecord record,
+            String sourceNoteId,
+            String rawReference,
+            int order
+    ) {
+        assertEquals(sourceNoteId, record.sourceNoteId());
+        assertEquals("manlinks", record.sourceField());
+        assertEquals(rawReference, record.rawReference());
+        assertEquals(Zkn3UnresolvedReferenceKind.MANUAL_LINK, record.referenceKind());
+        assertEquals(Zkn3UnresolvedReferenceReason.OUT_OF_RANGE, record.reason());
+        assertEquals(order, record.order());
     }
 
     private static void assertSequenceRecord(
